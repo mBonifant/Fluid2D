@@ -1,0 +1,493 @@
+\documentclass{scrartcl}
+\usepackage[utf8]{inputenc}
+\usepackage{fancyhdr}
+\usepackage{tabularx}
+\usepackage{titlesec}
+\usepackage{hyperref}
+
+
+\newcommand{\specialcell}[2][l]{%
+  \begin{tabular}[#1]{@{}l@{}}#2\end{tabular}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+ 
+ 
+ 
+ 
+ 
+\title{2D Fluid Dynamics Simulator\\Software Requirements Specification}
+\author{
+Almusalam, Ayman\\
+\texttt{aya1@hood.edu}
+\and
+Bonifant, Michael Chase\\
+\texttt{mcb13@hood.edu}
+\and
+Kalakonda, Sai Krishna\\
+\texttt{sk40@hood.edu}
+\and
+Reddy, Srikanth\\
+\texttt{sb37@hood.edu}
+\and
+Sindhu, Naga\\
+\texttt{nk12@hood.edu}
+}
+\date{\today\\v0.2 }
+
+\fancypagestyle{titlefooter}{%
+	\fancyhf{}
+	\renewcommand\headrulewidth{0pt}
+	\fancyfoot[R]{Prepared for\\Principles of Software Engineering\\Fall2015}
+}
+
+
+
+\begin{document}
+\maketitle
+\thispagestyle{titlefooter}
+\newpage 
+\pagenumbering{roman}
+
+
+\section*{Revision History}
+
+\begin{tabularx}{\textwidth}{|Y|Y|Y|Y|}
+\hline
+Date & Description & Author & Comments \\\hline
+  9/21/2015 & 
+  Started document & 
+  Michael Chase Bonifant & 
+  Made doc in google docs, shared with team.\\\hline
+  9/22/2015 & 
+  Initial Draft & 
+  Michael Chase Bonifant & 
+  Created first draft filling in most sections.\\\hline
+  9/22/2015 & 
+  Intro and page numbing & 
+  Ayam Almusalam & 
+Wrote introduction and corrected page numbering in table of content.\\\hline
+  9/26/2015 &
+  To Latex &
+  Michael Chase Bonifant &
+  Converted Google doc base into a \LaTeX .tex file and moved to a git-hub\\\hline
+\end{tabularx}
+
+\section*{Document Approval}
+The following Software Requirements Specification has been accepted and approved by the following:
+
+\begin{tabularx}{\textwidth}{|Y|Y|Y|Y|}
+\hline
+Signature & Printed Name & Title & Date\\
+\hline
+ & Ayman Almusalam & & \\
+\hline
+ & Michael Chase Bonifant & & \\
+\hline
+ & SAi Krishna Kalakonda & & \\
+\hline
+ & Srikanth Reddy & & \\
+ & Naga Sindhu & & \\
+\hline
+\end{tabularx}
+
+\newpage
+
+\tableofcontents
+\newpage
+\pagenumbering{arabic}
+\section{Introduction}
+\subsection{Purpose}
+The purpose of this document is to present the specifications and requirements of the  2-D Fluid Dynamics Simulator system. It will explain the purpose and features of the application, the interface of the application, what the application will do. This document is intended for both the stakeholders and the developers of the system.
+
+\subsection{Scope}
+\subparagraph{}
+The single software product to be produces is the 2D Fluid Dynamics Simulator system. The system will provide simulations for single fluids in a configurable simulation/virtual chamber. It will show in 2D the flow density of the fluid being simulated and allow the user to specify basic environmental factors about the simulated environment like. obstructions in the chamber and the viscosity of the fluid being simulated. 
+\subparagraph{}
+This tool will be beneficial as a learning tool for introducing students to fluid dynamics. It will not be useful in simulating large scale fluid systems (for instance, the flow pattern of run off from rain over a textured surface, the human circulatory system, or a city sewer system).
+
+\subsection{Definitions, Acronyms, and Abbreviations}
+\begin{description}
+	\item[Navier-Stokes Equations(NSE)] Equations that apply Newton's second law of motion to fluids (that is F=ma, force is mass times acceleration).
+	
+	\item[Lattice Boltzmann Methods(LBM)] A class of computational fluid dynamcs methods used in fluid simulation from which the Navier-Stokes equations can be derived.
+	
+	\item[Chamber] when used in this document chamber refers to the simulated container that the fluid dynamics are being simulated inside of.
+	
+	\item[System] when used in this document refers to the deliverable end product, the 2D Fluid Dynamics Simulator.
+\end{description}
+
+
+\subsection{References}
+\subparagraph{}
+There are currently no references for this document.
+
+\subsection{Overview}
+\subparagraph{}
+The following sections of this document detail the system in a mile-high description sch as might relate to a sales pitch and explaining the system to a layman (section 2), the fine grained system requirements from which developers should be able to build their own version of the system (section 3), detailed descriptions of analysis models used elsewhere referentially (section 4) and additional appendices. 
+
+
+\section{General Description}
+\subsection{Product Perspective}
+\subparagraph{}
+This system will serve as a self-contained desktop application for simulating 2-D fluid dynamics. It should be a simple, intuitive tool that allows users to configure a chamber filling or filled with fluid, vary environmental factors(e.g. obstructions in the chamber, temperature, viscosity), then apply a force vector to disturb the fluid and show a simulation of that force’s effect on the fluid.
+
+\subsection{Product Functions}
+\subparagraph{}
+The system allows the user to create a simulation chamber for testing what happens when a  force vector is applied to a fluid filling that chamber. As such the system allows users to select a fluid and a force vector. Additionally they can set environmental variables such as the temperature among others (see section 3.2.2 for a full listing of configurable variables). The user can also create within the chamber any number of physical obstructions the fluid can potentially rebound against and flow around. 
+
+\subparagraph{}
+The user can then set monitors at various points in the chamber. Once the chamber is fully  configured the user can launch the simulation and run it until they choose to terminate the simulation. The simulation runs showing a visual display of the created chamber and also provides a textual print out at the state of the simulation at all break points.
+
+\subparagraph{}
+From  the textual print out the user will be able to reload the simulation and replay the simulation.
+
+\subsection{User Characteristics}
+\subparagraph{}
+There’s only one user type for this system. The generic person who wants to run a fluid simulation, be that out of curiosity or some sort of coercion (such as a grade school teacher saying the user’s grade depends on using the system). 
+
+\subsection{General Constraints}
+\subparagraph{}
+The main constraints are the system must be a desktop application, and it must run on either Linux or Windows. Beyond that the simulation must be based on either the LBM or NSE.
+
+\subsection{Assumptions and Dependencies}
+\subparagraph{}
+Its assumed the system will be run on hardware supporting the operating system the designer chooses to develop the system for.
+
+
+\section{Specific Requirements}
+\subsection{External Interface Requirements}
+\subsubsection{User Intrafaces}
+\subparagraph{}
+The user interface GUI shall be user friendly and provide an animation of the simulation being run.
+
+\subsubsection{Hardware Interfaces}
+\subparagraph{}
+The system has no hardware interface requirements.
+
+\subsubsection{Software Interfaces}
+\subparagraph{}
+The system has no software interface requirements.
+
+\subsubsection{Communications Interfaces}
+\subparagraph{}
+The system has no communications interfaces, it works as a self-contained application.
+
+\subsection{Functional Requirements}
+\subsubsection{2D Fluid Simulation}
+\paragraph{Introduction}
+\subparagraph{}
+The system shall visualize flow density dynamically.
+
+\paragraph{Inputs}
+\subparagraph{}
+The system takes as input a single user selected fluid (see 3.2.3), physical parameters (see 3.2.2), break points (see 3.2.6), and a spatial configuration of the simulation (see 3.2.4). 
+
+\paragraph{Processing}
+\subparagraph{}
+The system must use the given inputs to simulate the flow density via either the LBM or NSE. The fluid will never overflow the simulation chamber.  Visualization will always be from a top down/floor plan point of view. Gravity if relevant to the LBM or NSE is constant and considered the average measurement of gravity near the surface of the earth. 
+
+\paragraph{Outputs}
+\subparagraph{}
+Animated and textual feedback pertaining to the flow density as time progresses from the initial state specified by the input parameters. This feedback is constantly updated step by step until the the user chooses to stop execution.
+
+\paragraph{Error Handling}
+\subparagraph{}
+There is no error handling specified.
+
+
+\subsubsection{Physical Parameters}
+\paragraph{Introduction}
+\subparagraph{}
+The system shall allow the user control in varying the viscosity, temperature, initial steady state flow speed, and perturbation force of the simulation. 
+
+\paragraph{Inputs}
+\subparagraph{}
+The viscosity, temperature (from a range of -100C to 100C), flowspeed, and perturbation force vector. There is no specification as to how these are to be obtained
+
+\paragraph{Processing}
+\subparagraph{}
+The ere is no specification to how this data need be processed beyond it must be utilized in the calculations of the fluid flow density with the NSE or LBM.
+
+\paragraph{Outputs}
+\subparagraph{}
+There is no specification as to the output beyond that they must be used in calculating the flow density of the fluid being simulated, and should be somehow incorporated into the textual feedback of the simulation so that the simulation could take that text and reproduce the simulation exactly. 
+
+\paragraph{Error Handling}
+\subparagraph{}
+There is no error handling specified.
+
+
+
+\subsubsection{Fluid Selections}
+\paragraph{Introduction}
+\subparagraph{}
+The system shall provide simulations for water and glycerin.
+
+\paragraph{Inputs}
+\subparagraph{}
+The user’s selection of water or glycerin. 
+
+\paragraph{Processing}
+\subparagraph{}
+The system must track the fluid’s change in flow density using either NSE or LBM. 
+
+\paragraph{Outputs}
+\subparagraph{}
+The user should get visual feedback of what’s happening in the simulation chamber and also textual output.
+
+\paragraph{Error Handling}
+\subparagraph{}
+There is no error handling specified.
+
+\subsubsection{Spatial Configuration}
+\paragraph{Introduction}
+\subparagraph{}
+User shall be able to define rectangular boxes and elliptic cylinders as obstructions to the fluid’s flow in the simulation chamber. the chamber itself will be rectangular visual from above, though it may have rounded sides, this curving is also configurable. 
+
+\paragraph{Inputs}
+\subparagraph{}
+There is no specification as to how these shapes are to be retrieved from the user and configured in the simulation. 
+
+\paragraph{Processing}
+\subparagraph{}
+Beyond the fact that the simulation must account for their existence and adjust the flow of the fluid accordingly with NSE or LBM the simulation may ignore the edge cases where the fluid hits sharp well defined cusps. 
+\subparagraph{}
+Additionally all obstructions span from the floor of the chamber to the roof and considered immutable (i.e. the fluid cannot create such a force as to break the obstructions or move them). 
+Lastly the chamber can be on a scale ranging from centimeters in size to meters. 
+
+\paragraph{Outputs}
+\subparagraph{}
+There is no specification as to how these obstructions or chamber shape are to be shown as output, beyond that there must be some animated feedback in the GUI and human readable textual output.
+
+\paragraph{Error Handling}
+\subparagraph{}
+Objects with cusps cannot be oriented so the fluid hits the cusp head one. 
+
+
+
+\subsubsection{On Demand Feedback}
+\paragraph{Introduction}
+\subparagraph{}
+The system shall be able to provide on-demand information about flow values.
+
+\paragraph{Inputs}
+\subparagraph{}
+The user can select any point in the simulation chamber and immediately get feed back as to the flow values of that location in the simulation immediately. 
+
+\paragraph{Processing}
+\subparagraph{}
+There is no specification to the process this need be implemented by, beyond the returned values must agree with either the LBM or NSE.
+
+\paragraph{Outputs}
+\subparagraph{}
+The flow density at all points needs to be visualized in animation and text already, requesting this feedback is merely highlighting the textual output for the selected region.
+
+\paragraph{Error Handling}
+\subparagraph{}
+There is no error handling specified.
+
+
+
+\subsubsection{Monitoring Points}
+\paragraph{Introduction}
+\subparagraph{}
+The user shall be able to select monitoring points in the simulation (flow meters) to show information during execution without affecting the flow of the fluid.
+
+\paragraph{Inputs}
+\subparagraph{}
+There is no specification as to how there flow meters be obtained, beyond the user must provide them.
+
+\paragraph{Processing}
+\subparagraph{}
+There is no specification as to how these flow meters need to be implemented beyond that their output must agree with either the LBM or NSE.
+
+\paragraph{Outputs}
+\subparagraph{}
+Textual feedback of the flow density at the specified locations in the simulation. 
+
+\paragraph{Error Handling}
+\subparagraph{}
+There is no specification for error handling. 
+
+
+
+
+
+\subsubsection{Clear Start and End of Simulation}
+\paragraph{Introduction}
+\subparagraph{}
+The system shall indicate clearly when a simulation begins and terminates.
+
+\paragraph{Inputs}
+\subparagraph{}
+The user selects when to start the simulation and when to terminate it. There is no specification as to how this information is to be selected, beyond once it starts the user can terminate the program at any moment.
+
+\paragraph{Processing}
+\subparagraph{}
+There is no specification as to how this is to be implemented.
+
+\paragraph{Outputs}
+\subparagraph{}
+Clear animated and textual feedback that the simulation has started and terminated.
+
+\paragraph{Error Handling}
+\subparagraph{}
+There is no specification for error handling.
+
+
+
+\subsubsection{Textual Logging}
+\paragraph{Introduction}
+\subparagraph{}
+The system shall provide a detailed log of the execution of the simulation so that the user can go back through a text file and trace the execution of the program.
+
+\paragraph{Inputs}
+\subparagraph{}
+There is no specification as to inputs, (but presumably a name for each simulation to attribute to the generated text file is required).
+
+\paragraph{Processing}
+\subparagraph{}
+There is no specification as to how the text is to be generated or worded, beyond it must provide feedback for all marked flow meters, and the system as a whole.
+
+\paragraph{Outputs}
+\subparagraph{}
+A text file containing a trace of the execution of the simulation.
+
+
+\paragraph{Error Handling}
+\subparagraph{}
+There is no specification for error handling.
+
+
+\subsubsection{Instant Replay}
+\paragraph{Introduction}
+\subparagraph{}
+The system shall allow the user to replay any simulation by reloading the simulation from its generated textual log file. 
+
+\paragraph{Inputs}
+\subparagraph{}
+The selected log file, there is no specification as to how this file be obtained.
+
+\paragraph{Processing}
+\subparagraph{}
+The system must load the log file and execute reproducing the original simulation exactly.
+
+\paragraph{Outputs}
+\subparagraph{}
+Animated and textual feedback about the simulation, the simulation should be identical to the original.
+
+\paragraph{Error Handling}
+\subparagraph{}
+There is no specification for error handling.
+
+
+
+\subsection{Use Cases}
+\subsubsection{Filling a Chamber}
+The system will allow the user to simulate a fluid filling the chamber from empty until it is full. In this case the flow rate of fluid into the chamber must be constant.  
+
+\subsubsection{Perturbing a Chamber}
+The system will allow the user to simulate a single  force perturbing the fluid in the chamber. This force cannot be applied from a corner of the chamber, only from one of its sides.
+
+\subsubsection{Draining a Chamber}
+The system will allow the user to an exit way for the chamber.
+
+
+\subsection{Classes/Objects}
+There are no class/object requirements. 
+
+
+
+\subsection{Non-Functional Requirements}
+\subsubsection{Performance}
+\begin{enumerate}
+\item The system overall shall produce results accurate to the 4th decimal place.
+
+\item The system shall produce results in metric units.
+\end{enumerate}
+\subsubsection{Reliability}
+There are no reliability specifications.
+
+\subsubsection{Availability}
+The system is to be available as a on-demand desktop applications.
+\\\\
+There is no specification for recovery should the application fail. 
+
+\subsubsection{Security}
+There are no security specifications. 
+
+
+\subsubsection{Maintainability}
+\begin{enumerate}
+\item The system shall be designed so that the GUI and simulation engine can be fully decoupled and swapped out with other GUIs and engines.
+
+\item Distributions of the software shall include the source code.
+
+\item Distributions of the software shall include compilation instructions.
+
+\item Distributions of the software shall include a list of dependencies.
+
+\item Distributions of the software shall include either an installer or installation script.
+
+\item Distributions of the software shall include all generated document artifacts during the engineering life cycle.
+
+\item Distributions of the software shall include an installation guide.
+
+\item Distributions of the software shall include a user guide with screen shots.
+
+\item  Distributions of the software shall include a programmer’s guide.
+
+\item All generated documents shall be typed and electronically generated.
+
+\end{enumerate}
+
+\subsubsection{Portability}
+\begin{enumerate}
+\item The system must work on either a Windows or Linux operating system, with no expectation that it be portable from it original target operating system.
+
+\end{enumerate}
+\subsection{Inverse Requirements}
+\begin{enumerate}
+\item The application does not simulate multiple fluids interacting, diffusing or mixing in any way, only one fluid is simulated at a time.
+
+\item The application only simulates a single perturbing force from a wall (not corners/cusps), if a fluid is filling the chamber, that fluid is already providing the perturbing force, so a second is not specifiable. This is also true if the chamber is draining.
+\end{enumerate}
+\subsection{Design Constraints}
+\begin{enumerate}
+\item The system shall simulate fluid dynamics using either NSE or LBM. 
+
+\item The system must be an installed desktop application for either a Linux or Windows environment.
+ 
+\item The system must be released under GNU GPL3 licensing.
+
+\item The system may optionally include ONE third party component with the customer’s approval of the component. 
+
+\end{enumerate}
+\subsection{Logical Database Requirements}
+There is no requirement that a database be used. 
+
+\subsection{Other Requirements}
+There are no other known requirements. 
+
+\section{Analysis Methods}
+\subsection{Sequence Diagrams}
+There are currently no sequence diagrams.
+
+\subsection{Data Flow Diagrams (DFD)}
+There are currently no data flow diagrams
+
+\subsection{State-Transition Diagrams (STD)}
+There are currently no state-transition diagrams.
+
+\section{Change Management Process}
+All documents, source files, and additional project artifacts are stored on a github repository:
+\href{https://github.com/mBonifant/Fluid2D}{https://github.com/mBonifant/Fluid2D}
+
+\section{Appendices}
+There are presently no appendices. 
+
+\end{document}
