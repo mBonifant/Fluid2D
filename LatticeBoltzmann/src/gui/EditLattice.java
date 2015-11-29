@@ -50,7 +50,7 @@ public class EditLattice extends JPanel {
 		g.setColor(Color.LIGHT_GRAY);
 		g.fillRect(0, 0, this.getWidth(), this.getHeight());
 		if (boundaries.size() != 0) {
-			System.out.println(boundaries);
+			// System.out.println(boundaries);
 			Boundary.paintBoundarys((Graphics2D) g, boundaries, xi, yi);
 		}
 	}

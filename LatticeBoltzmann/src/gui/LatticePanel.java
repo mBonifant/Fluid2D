@@ -3,17 +3,19 @@ package gui;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JPanel;
 
+import lattice.Cell;
+import lattice.Lattice;
 import boundary.conditions.Sink;
 import boundary.conditions.Source;
 import boundary.conditions.Wall;
-import lattice.Cell;
-import lattice.Lattice;
 
 /**
  * @author bonifantmc
@@ -24,30 +26,49 @@ public class LatticePanel extends JPanel implements RefreshListener {
 	/**
 	 * Lattice to render
 	 */
-	static int density = 1;
+	int density = 1;
 	private final Lattice l;
 	private BufferedImage bf;
 	private Graphics bfg;
-	private List<Boundary> bounds;
+	public float factor = 1;
+	private Cell.ColorStats color;
 
 	/**
 	 * 
 	 * @param l
 	 *            Lattice thie panel draws
+	 * @param dens
+	 *            number of pixels squared per cell
+	 * @param factor
+	 *            factor to apply to the getHSV to intensify differences in
+	 *            macro/microscopic values of a cell
+	 * @param c
+	 *            which macro/microscopic value to view
 	 */
-	public LatticePanel(Lattice l, List<Boundary> list) {
+	public LatticePanel(Lattice l, int dens, float factor, Cell.ColorStats c) {
+		this.color = c;
+		this.factor = factor;
 		this.l = l;
-		this.bounds = list;
-		this.setPreferredSize(new Dimension(l.width * density, l.length * density));
+		this.density = dens;
+		this.setPreferredSize(new Dimension(l.width * this.density, l.length
+				* this.density));
 		this.setMinimumSize(getPreferredSize());
 		this.setMaximumSize(getPreferredSize());
 		this.setSize(getPreferredSize());
-		bf = new BufferedImage(l.width * density, l.length * density, BufferedImage.TYPE_INT_RGB);
-		bfg = bf.getGraphics();
+		this.bf = new BufferedImage(l.width * this.density, l.length
+				* this.density, BufferedImage.TYPE_INT_RGB);
+		this.bfg = this.bf.getGraphics();
 		l.addRefreshListener(this);
-	}
+		this.addMouseMotionListener(new MouseMotionAdapter() {
+			@Override
+			public void mouseMoved(MouseEvent arg0) {
+				Point p = arg0.getPoint();
+				setToolTipText(l.lattice[p.x / LatticePanel.this.density][p.y
+						/ LatticePanel.this.density].toString());
 
-	Cell c;
+			}
+		});
+	}
 
 	/**
 	 * 
@@ -56,21 +77,23 @@ public class LatticePanel extends JPanel implements RefreshListener {
 	 */
 	@Override
 	public void paintComponent(Graphics g) {
+		Cell c;
 		super.paintComponent(g);
-		System.out.println("refreshing paint");
-		g.clearRect(0, 0, l.width * density, l.length * density);
-		bfg.clearRect(0, 0, l.width * density, l.length * density);
-		for (int i = 1; i < l.width - 1; i++)
-			for (int j = 1; j < l.length - 1; j++) {
-				c = l.lattice[i][j][0];
-				bfg.setColor(c.bc instanceof Wall ? Feature.WALL_ELLI.getColor()
-						: c.bc instanceof Source ? Feature.SOURCE_ELLI.getColor()
-								: c.bc instanceof Sink ? Feature.SINK_ELLI.getColor() : c.getColor());
-				bfg.fillRect(i * density, j * density, density, density);
+		g.clearRect(0, 0, this.l.width * this.density, this.l.length
+				* this.density);
+		this.bfg.clearRect(0, 0, this.l.width * this.density, this.l.length
+				* this.density);
+
+		for (int i = 0; i < this.l.width; i++)
+			for (int j = 0; j < this.l.length; j++) {
+				c = this.l.lattice[i][j];
+				this.bfg.setColor(c.getColor(this.color, factor));
+				this.bfg.fillRect(i * this.density, j * this.density,
+						this.density, this.density);
 			}
 
-		Boundary.paintBoundarys((Graphics2D) bfg, bounds, 0, 0);
-		g.drawImage(bf, 0, 0, null);
+		// Boundary.paintBoundarys((Graphics2D) this.bfg, this.bounds, 0, 0);
+		g.drawImage(this.bf, 0, 0, null);
 	}
 
 	@Override
@@ -84,4 +107,17 @@ public class LatticePanel extends JPanel implements RefreshListener {
 
 	}
 
+	/**
+	 * Set the Coloring of the Lattice Panel (if the given object is a coloring
+	 * state)
+	 * 
+	 * @param color
+	 *            the coloring state to switch to
+	 */
+	public void setColor(Object color) {
+		if (color instanceof Cell.ColorStats) {
+			this.color = (Cell.ColorStats) color;
+			System.out.println("new color: " + color);
+		}
+	}
 }

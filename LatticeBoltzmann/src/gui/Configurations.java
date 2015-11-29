@@ -72,14 +72,14 @@ public class Configurations {
 				}
 
 				try {
-					x = Double.valueOf((prop.getProperty("positionX", "0")))
+					x = Float.valueOf((prop.getProperty("positionX", "0")))
 							.intValue();
 				} catch (NumberFormatException e) {
 					x = dx;
 				}
 
 				try {
-					y = Double.valueOf((prop.getProperty("positionY", "0")))
+					y = Float.valueOf((prop.getProperty("positionY", "0")))
 							.intValue();
 
 				} catch (NumberFormatException e) {
