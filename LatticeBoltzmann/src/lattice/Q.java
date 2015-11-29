@@ -10,40 +10,23 @@ package lattice;
  *
  */
 
-//TODO double check the weight vectors which may be wrong
+// TODO double check the weight vectors which may be wrong
 public enum Q {
 	/***/
-	nine(9, // size
-			new double[] { 4f / 9f, 1f / 9f, 1f / 9f, 1f / 9f, 1f / 9f, 1f / 36f, 1f / 36f, 1f / 36f, 1f / 36f }, // weights
-			Velocity.o9, // opposites
-			Velocity.e9), // velocities
-			/***/
-	fifteen(15, // size
-			new double[] { 2f / 9f, 1f / 9f, 1f / 9f, 1f / 9f, 1f / 9f, 1f / 9f, 1f / 9f, 1f / 72f, 1f / 72f, 1f / 72f,
-					1f / 72f, 1f / 72f, 1f / 72f, 1f / 72f, 1f / 72f }, // weights
-			Velocity.o15, // opposites
-			Velocity.e15), // velocities
-			/***/
-	nineteen(19, // size
-			new double[] { 1f / 3f, 1f / 18f, 1f / 18f, 1f / 18f, 1f / 18f, 1f / 18f, 1f / 18f, 1f / 36f, 1f / 36f,
-					1f / 36f, 1f / 36f, 1f / 36f, 1f / 36f, 1f / 36f, 1f / 36f, 1f / 36f, 1f / 36f, 1f / 36f,
-					1f / 36f }, // weights
-			Velocity.o19, // opposites
-			Velocity.e19), // velocities
-			/***/
-	twentySeven(27, // size
-			new double[] { 8f / 27f, 2f / 27f, 2f / 27f, 2f / 27f, 2f / 27f, 2f / 27f, 2f / 27f, 1f / 216f, 1f / 216f,
-					1f / 216f, 1f / 216f, 1f / 216f, 1f / 216f, 1f / 216f, 1f / 216f, 1f / 54f, 1f / 54f, 1f / 54f,
-					1f / 54f, 1f / 54f, 1f / 54f, 1f / 54f, 1f / 54f, 1f / 54f, 1f / 54f, 1f / 54f, 1f / 54f }, // weights
-			Velocity.o27, // opposites
-			Velocity.e27);// velocities
+	nine(9, Velocity.w9, Velocity.o9, Velocity.e9),
+	/***/
+	fifteen(15, Velocity.w15, Velocity.o15, Velocity.e15),
+	/***/
+	nineteen(19, Velocity.w19, Velocity.o19, Velocity.e19),
+	/***/
+	twentySeven(27, Velocity.w27, Velocity.o27, Velocity.e27);
 
 	/** weighting of the velocity per direction */
 	public final double[] weights;
 	/** element i gives the index of the opposite velocity of i */
 	public final int[] opposites;
 	/** list of 3-vectors, giving the direction of each velocity */
-	public final byte[][] velocities;
+	public final double[][] velocities;
 	/** the number of velocities the given Q flows in */
 	public final int size;
 
@@ -58,7 +41,7 @@ public enum Q {
 	 * @param v
 	 *            direction of velocity
 	 */
-	private Q(int i, double[] w, int[] o, byte[][] v) {
+	private Q(int i, double[] w, int[] o, double[][] v) {
 		this.weights = w;
 		this.opposites = o;
 		this.velocities = v;

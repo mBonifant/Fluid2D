@@ -1,20 +1,27 @@
 package lattice;
 
+import gui.Boundary;
+import gui.RefreshListener;
+
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.geom.Rectangle2D.Double;
 import java.awt.geom.RectangularShape;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Vector;
 
 import javax.swing.Timer;
 
+import Fluids.Liquid;
+import Fluids.Water;
 import boundary.conditions.BoundaryCondition;
 import boundary.conditions.Fluid;
 import boundary.conditions.Sink;
 import boundary.conditions.Source;
 import boundary.conditions.Wall;
-import gui.RefreshListener;
 
 /***
  * A Lattice is a 3 Dimensional Array defining a collection of Cells through
@@ -24,37 +31,54 @@ import gui.RefreshListener;
  */
 public class Lattice {
 
-	/**
-	 * Lattice containing cells of fluid.
-	 */
-	public Cell[][][] lattice;
+	// main lattice structure
+
+	/** Lattice containing cells of fluid. */
+	public Cell[][] lattice;
+
+	/** a temporary copy of the lattice */
+	private Cell[][] tmp;
+
 	/** The number of microscopic velocities each cell will track */
 	public final Q cellDim;
+
 	/** The length of the lattice */
 	public final int length;
 	/** The width of the lattice */
 	public final int width;
-	/** The depth of the lattice */
-	public final int depth;
-	public final ActionListener ac = new ActionListener() {
+
+	// boundary conditions
+
+	/** Boundary Condition for a fluid Source */
+	public final Source src;
+	/** Boundary Condition for a fluid Sink */
+	public final Sink sink;
+	/** Boundary Condition for a solid wall */
+	public final Wall wall;
+	/** Boundary Condition for a fluid */
+	public final Fluid fluid;
+
+	/** default velocity of in flowing fluid */
+	private double[] defU;
+	/** speedSq of the default velocity */
+	private double defUNorm;
+
+	/**
+	 * listeners checking if they should refresh their display of the lattice
+	 */
+	private Vector<RefreshListener> listeners = new Vector<>();
+
+	/** An action listener that tells the Lattice to update on step */
+	private final ActionListener ac = new ActionListener() {
 		@Override
 		public void actionPerformed(ActionEvent e) {
 			doStep();
 		}
 	};
-	public Timer tm = new Timer(250, ac);
+	/** A time that tells the Lattice how often to update */
+	public Timer tm = new Timer(10000, this.ac);
 
-	/** the 'thickness' of the fluid running on the lattice */
-	final double viscosity;
-
-	/**
-	 * constant related to time and decay towards equilibrium stipulated by the
-	 * fluid's viscosity
-	 */
-	final double omega;
-
-	private Vector<RefreshListener> listeners = new Vector<>();
-	private Cell[][][] tmp;
+	public Liquid l;
 
 	/**
 	 * Create a three dimensional Lattice of c-dimensional Cells
@@ -63,42 +87,75 @@ public class Lattice {
 	 *            the width of the lattice
 	 * @param l
 	 *            the length of the lattice
-	 * @param d
-	 *            the depth of the lattice (set to 1 for 2D Lattice)
+	 * 
 	 * @param c
 	 *            the number of microscopic velocities each cell tracks
 	 * @param v
 	 *            viscosity of the fluid on the lattice
+	 * @param u
+	 *            incoming velocity
 	 * 
 	 * @param density
 	 *            the density of the fluid
+	 * @param list
+	 *            a list of boundaries to add to the lattice
 	 */
-	public Lattice(int w, int l, int d, Q c, double v, double density) {
-		this.length = l + 2;
-		this.width = w + 2;
-		this.depth = d;
+	public Lattice(int w, int l, Q c, Liquid liq, double[] u,
+			List<Boundary> list) {
+		this.length = l;
+		this.width = w;
 		this.cellDim = c;
-		this.viscosity = v;
-		this.lattice = new Cell[this.width][this.length][this.depth];
-		this.tmp = new Cell[this.width][this.length][this.depth];
-		this.omega = 1f / (3f * v + 0.5f);
+		this.l = liq;
+		this.lattice = new Cell[this.width][this.length];
+		this.tmp = new Cell[this.width][this.length];
+		this.defU = u;
+		this.defUNorm = u[0] * u[0] + u[1] * u[1];
+		System.out.println("defU:" + u[0] + "," + u[1] + " norm:"
+				+ this.defUNorm);
+		this.wall = new Wall(this.cellDim, this.l);
+		this.sink = new Sink(this.cellDim, this.l);
+		this.src = new Source(this.cellDim, this.defU, this.l);
+		this.fluid = new Fluid(this.cellDim, this.l);
+
 		for (int i = 0; i < this.width; i++)
-			for (int j = 0; j < this.length; j++)
-				for (int k = 0; k < this.depth; k++)
-					// all edges of the lattice are walls (unless the lattice is
-					// only 2D, then ignore the floor/ceiling
-					if (i == 0 || i == this.width - 1 || j == 0 || j == this.length - 1
-							|| (k == this.depth - 1 && depth != 1)) {
-						System.out.println("depth");
-						this.lattice[i][j][k] = new Cell(Wall.getBoundaryCondition(cellDim), omega, cellDim.size);
-						this.tmp[i][j][k] = new Cell(Wall.getBoundaryCondition(cellDim), omega, cellDim.size);
+			for (int j = 0; j < this.length; j++) {
+				this.lattice[i][j] = new Cell(this.fluid, i, j);
+				this.tmp[i][j] = new Cell(this.fluid, i, j);
+				continue;
+			}
+		this.initVelocity(this.lattice);
+		this.initVelocity(this.tmp);
 
-					} else { // inside the lattice fluid flows
-						this.lattice[i][j][k] = new Cell(Fluid.getBoundaryCondition(cellDim), omega, cellDim.size);
-						this.tmp[i][j][k] = new Cell(Fluid.getBoundaryCondition(cellDim), omega, cellDim.size);
-					}
+		this.addBoundaryCondition(this.wall, new Rectangle2D.Double(0, 0,
+				this.width, 1));
+		this.addBoundaryCondition(this.wall, new Rectangle2D.Double(0,
+				this.length - 1, this.width, 1));
+		for (Boundary b : list)
+			this.addBoundaryCondition(b);
 
-		this.initVelocity(1.0f);
+	}
+
+	private void addBoundaryCondition(Boundary b) {
+		switch (b.rectangle) {
+		case SINK_ELLI:
+		case SINK_RECT:
+			this.addBoundaryCondition(this.sink, b.shape);
+			return;
+		case SOURCE_ELLI:
+		case SOURCE_RECT:
+			this.addBoundaryCondition(this.src, b.shape);
+			return;
+		case WALL_ELLI:
+		case WALL_RECT:
+			this.addBoundaryCondition(this.wall, b.shape);
+			return;
+		case FLUID_ELLI:
+		case FLUID_RECT: {
+			this.addBoundaryCondition(this.fluid, b.shape);
+			System.out.println("adding fluid bound");
+		}
+			return;
+		}
 	}
 
 	/**
@@ -115,10 +172,11 @@ public class Lattice {
 			for (int j = (int) rs.getMinY(); j < rs.getMaxY(); j++) {
 				// if the point is also in the lattice, set the boundary
 				// condition to the given condition
-				if (i > 0 && i < width && j > 0 && j < length && rs.contains(new Point2D.Double(i, j)))
-					for (int z = 0; z < depth; z++)
-						lattice[i][j][z] = new Cell(b, omega, cellDim.size);
-
+				if (i >= 0 && i < this.width && j >= 0 && j < this.length
+						&& rs.contains(new Point2D.Float(i, j))) {
+					this.lattice[i][j].bc = b;
+					this.tmp[i][j].bc = b;
+				}
 			}
 	}
 
@@ -130,7 +188,7 @@ public class Lattice {
 	 *            the rectangular shape to add
 	 */
 	public void addRectangularWall(RectangularShape rs) {
-		addBoundaryCondition(Wall.getBoundaryCondition(cellDim), rs);
+		addBoundaryCondition(this.wall, rs);
 	}
 
 	/**
@@ -141,7 +199,7 @@ public class Lattice {
 	 *            the rectangular shape to add
 	 */
 	public void addRectangularSink(RectangularShape rs) {
-		addBoundaryCondition(Sink.getBoundaryCondition(cellDim), rs);
+		addBoundaryCondition(this.sink, rs);
 
 	}
 
@@ -153,7 +211,7 @@ public class Lattice {
 	 *            the rectangular shape to add
 	 */
 	public void addRectangularSource(RectangularShape rs) {
-		addBoundaryCondition(Source.getBoundaryCondition(cellDim), rs);
+		addBoundaryCondition(this.src, rs);
 	}
 
 	/**
@@ -164,103 +222,150 @@ public class Lattice {
 	 *            the rectangular shape to add
 	 */
 	public void addRectangularFluid(RectangularShape rs) {
-		addBoundaryCondition(Fluid.getBoundaryCondition(cellDim), rs);
+		addBoundaryCondition(this.fluid, rs);
 
 	}
 
+	/**
+	 * @param rl
+	 *            the RefreshListener to add to the lattice's list of listeners
+	 */
 	public void addRefreshListener(RefreshListener rl) {
 		this.listeners.addElement(rl);
 	}
 
+	/**
+	 * @param rl
+	 *            the RefreshListener to remove from the lattice's list of
+	 *            listeners
+	 */
 	public void removeRefreshListener(RefreshListener rl) {
 		while (this.listeners.contains(rl))
 			this.listeners.remove(rl);
 	}
 
+	/** Calculate the collision step of LBM */
 	private void collide() {
-		for (Cell[][] c : lattice)
-			for (Cell[] cc : c)
-				for (Cell ccc : cc)
-					ccc.collide();
+		for (int i = 0; i < this.width; i++)
+			for (int j = 0; j < this.length; j++)
+				this.lattice[i][j].collide();
 	}
 
+	/** Calculate the streaming step of LBM */
 	private void stream() {
-		int prevX, prevY, pervZ;
-		for (int x = 1; x < width - 1; x++) {
-			for (int y = 1; y < length - 1; y++) {
-				for (int z = 0; z < depth; z++)
-					for (int i = 0; i < cellDim.size; i++) {
-						prevX = (int) (x - cellDim.velocities[i][0]);
-						prevY = (int) (y - cellDim.velocities[i][1]);
-						pervZ = (int) (z - cellDim.velocities[i][2]);
-						tmp[x][y][z].setF(lattice[prevX][prevY][pervZ].getF()[i], i);
-					}
+		int prevX, prevY;
+		for (int x = 0; x < this.width; x++) {
+			for (int y = 0; y < this.length; y++) {
+				for (int i = 0; i < this.cellDim.size; i++) {
+					prevX = (int) (x - this.cellDim.velocities[i][0]);
+					prevY = (int) (y - this.cellDim.velocities[i][1]);
+					if (prevX < 0 || prevY < 0 || prevX >= this.width
+							|| prevY >= this.length)
+						continue;
+					this.tmp[x][y]
+							.setF(this.lattice[prevX][prevY].getF()[i], i);
+				}
 			}
 		}
-		Cell[][][] swapLattice = lattice;
-		lattice = tmp;
-		tmp = swapLattice;
-	}
 
-	private void bounce() {
-		// TODO boundaries other than Q9
-		// North & South Boundary
-		for (int z = 0; z < depth; z++) {
-			for (int x = 1; x < width; x++) {
-				lattice[x][0][z].setF(lattice[x][length - 2][z].getF()[6], 6);
-				lattice[x][0][z].setF(lattice[x][length - 2][z].getF()[2], 2);
-				lattice[x][0][z].setF(lattice[x][length - 2][z].getF()[5], 5);
-				lattice[x][length - 1][z].setF(lattice[x][1][z].getF()[7], 7);
-				lattice[x][length - 1][z].setF(lattice[x][1][z].getF()[4], 4);
-				lattice[x][length - 1][z].setF(lattice[x][1][z].getF()[8], 8);
+		// edit bounds of chamber
+		double v = Math.sqrt(this.defUNorm);
+		double east = 1f / 9f * (1 + 3 * v + 3 * this.defUNorm), northOrSouthEast = 1f / 36f * (1 + 3 * v + 3 * this.defUNorm);
+		double west = 1f / 9f * (1 - 3 * v + 3 * this.defUNorm), northOrSouthWest = 1f / 36f * (1 - 3 * v + 3 * this.defUNorm);
+
+		for (int y = 0; y < this.length; y++) {
+
+			if (this.lattice[0][y].bc == this.fluid) {
+				this.lattice[0][y].setF(east, 3);
+				this.lattice[0][y].setF(northOrSouthEast, 7);// northeast
+				this.lattice[0][y].setF(northOrSouthEast, 6);// southeast
+
 			}
-			// East & West Boundary
-			for (int y = 1; y < length; y++) {
-				lattice[0][y][z].setF(lattice[width - 2][y][z].getF()[5], 5);
-				lattice[0][y][z].setF(lattice[width - 2][y][z].getF()[8], 8);
-				lattice[0][y][z].setF(lattice[width - 2][y][z].getF()[1], 1);
-				lattice[width - 1][y][z].setF(lattice[1][y][z].getF()[7], 7);
-				lattice[width - 1][y][z].setF(lattice[1][y][z].getF()[3], 3);
-				lattice[width - 1][y][z].setF(lattice[1][y][z].getF()[6], 6);
-			}
-			// Corners
-			lattice[width - 1][0][z].setF(lattice[1][length - 2][z].getF()[6], 6);
-			lattice[0][length - 1][z].setF(lattice[width - 2][1][z].getF()[8], 8);
-			lattice[width - 1][length - 1][z].setF(lattice[1][1][z].getF()[7], 7);
-			lattice[0][0][z].setF(lattice[width - 2][length - 2][z].getF()[5], 5);
 		}
+		// Try the same thing at the right edge and see if it works:
+		for (int y = 0; y < this.length; y++) {
+
+			if (this.lattice[this.width - 1][y].bc == this.fluid) {
+				this.lattice[this.width - 1][y].setF(west, 4);
+				this.lattice[this.width - 1][y].setF(northOrSouthWest, 5);// northWest
+				this.lattice[this.width - 1][y].setF(northOrSouthWest, 8);// southWest
+
+			}
+		}
+
+		Cell[][] swapLattice = this.lattice;
+		this.lattice = this.tmp;
+		this.tmp = swapLattice;
 	}
 
+	/** Process one steam/collision and tell listeners to update */
 	public void doStep() {
-		System.out.println("stepping");
-		// bounce();
-		stream();
+
 		collide();
+		stream();
+		computeCurl();
+
 		Iterator<RefreshListener> itr = this.listeners.iterator();
 		while (itr.hasNext())
 			itr.next().onRefresh();
 	}
 
-	double U_MAX = 0.01f;
+	/**
+	 * Initalizes the velocity of all cells in the lattice
+	 * 
+	 * @param l
+	 *            the Lattice to init (must init lattice and temp lattice
+	 */
+	public void initVelocity(Cell[][] l) {
+		System.out.println("U=" + this.defU[0] + "," + this.defU[1]);
+		for (int x = 0; x < this.width; x++)
+			for (int y = 0; y < this.length; y++) {
+				// this.initVelocityColumnEast(y, lattice);
+				for (int i = 0; i < this.cellDim.size; i++) {
+					l[x][y].setU(this.defU[0], this.defU[1]);
+					l[x][y].setRho(this.l.getDensity());
+					double fEq = l[x][y].bc.computeIthEquilibrium(l[x][y], i);
+					l[x][y].setF(fEq, i);
 
-	public void initVelocity(double density) {
-		double divX = (width - 2) * (width - 2);
-		double divY = (length - 2) * (length - 2);
-
-		for (int x = 1; x < width - 1; x++)
-			for (int y = 1; y < length - 1; y++) {
-
-				double[] u = { 4 * U_MAX / divX * (x - 2) * (width - x), 0f/*4 * U_MAX / divY * (y - 2) * (length - y)*/, 0f };
-				double speedSQ = u[0] * u[0] + u[1] * u[1];
-				for (int i = 0; i < cellDim.size; i++) {
-					double fEq = lattice[x][y][0].bc.computeEquilibrium(i, density, u, speedSQ);
-					for (int z = 0; z < depth; z++) {
-						lattice[x][y][z].setF(fEq, i);
-						System.arraycopy(lattice[x][y][z].u, 0, u, 0, 3);
-						lattice[x][y][z].rho = density;
-						lattice[x][y][z].speedSq = speedSQ;
-					}
 				}
 			}
+	}
+
+	/**
+	 * Compute the curl of the entire lattice
+	 * 
+	 */
+	public void computeCurl() {
+		for (int x = 1; x < this.width - 1; x++) {
+			for (int y = 1; y < this.length - 1; y++) {
+				this.tmp[x][y].curl = (this.lattice[x + 1][y].getY() - this.lattice[x - 1][y]
+						.getY())
+						- (this.lattice[x][y + 1].getX() - this.lattice[x][y - 1]
+								.getX());
+			}
+		}
+
+		for (int y = 1; y < this.length - 1; y++) {
+			this.tmp[0][y].curl = 2
+					* (this.lattice[1][y].getY() - this.lattice[0][y].getY())
+					- (this.lattice[0][y + 1].getX() - this.lattice[0][y - 1]
+							.getX());
+
+			this.tmp[this.width - 1][y].curl = 2
+					* (this.lattice[this.width - 1][y].getY() - this.lattice[this.width - 2][y]
+							.getY())
+					- (this.lattice[this.width - 1][y + 1].getX() - this.lattice[this.width - 1][y - 1]
+							.getX());
+		}
+
+	}
+
+	public void setLiquid(Liquid l) {
+		this.l = l;
+		this.wall.setL(l);
+		this.fluid.setL(l);
+		this.src.setL(l);
+		this.sink.setL(l);
+
 	}
 }

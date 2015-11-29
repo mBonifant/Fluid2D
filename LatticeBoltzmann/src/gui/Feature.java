@@ -11,11 +11,13 @@ public enum Feature {
 
 	/** Rectangular Sink */
 	SINK_RECT("ro", Color.BLUE), /** Rectangular Source */
-	SOURCE_RECT("ri", Color.RED), /** Rectangular source */
-	WALL_RECT("rw", Color.MAGENTA), /** Rectangular Source */
-	SINK_ELLI("eo", Color.BLUE), /** Elliptical Sink */
-	SOURCE_ELLI("ei", Color.RED), /** Elliptical Source */
-	WALL_ELLI("ew", Color.MAGENTA); /** Elliptical Wall */
+	SOURCE_RECT("ri", Color.RED), /** Rectangular Wall */
+	WALL_RECT("rw", Color.MAGENTA), /** Elliptical Sink */
+	SINK_ELLI("eo", Color.BLUE), /** Elliptical Source */
+	SOURCE_ELLI("ei", Color.RED), /** Elliptical Wall */
+	WALL_ELLI("ew", Color.MAGENTA), /** Rectangular Fluid */
+	FLUID_RECT("rf", Color.GREEN), /** Elliptical Fluid */
+	FLUID_ELLI("ef", Color.GREEN);
 
 	/**
 	 * This is the character string that is printed when an annotation is
@@ -61,10 +63,12 @@ public enum Feature {
 		case SOURCE_RECT:
 		case WALL_RECT:
 		case SINK_RECT:
+		case FLUID_RECT:
 			return true;
 		case SINK_ELLI:
 		case SOURCE_ELLI:
 		case WALL_ELLI:
+		case FLUID_ELLI:
 			return false;
 		}
 		return true;
@@ -88,12 +92,16 @@ public enum Feature {
 			return SINK_ELLI;
 		case "ew":
 			return WALL_ELLI;
+		case "ef":
+			return FLUID_ELLI;
+		case "rf":
+			return FLUID_RECT;
 		}
 		return WALL_RECT;
 	}
 
 	public static String charValues() {
-		return "reiow";
+		return "reiowf";
 	}
 
 	public static Feature getConversion(Feature f, String i) {
@@ -106,10 +114,13 @@ public enum Feature {
 			return Feature.parseFeature(r.substring(0, 1) + "o");
 		case "w":
 			return Feature.parseFeature(r.substring(0, 1) + "w");
+		case "f":
+			return Feature.parseFeature(r.substring(0, 1) + "f");
 		case "r":
 			return Feature.parseFeature("r" + r.substring(1, 2));
 		case "e":
 			return Feature.parseFeature("e" + r.substring(1, 2));
+
 		}
 		return null;
 	}

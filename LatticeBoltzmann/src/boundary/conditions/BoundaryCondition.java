@@ -1,5 +1,7 @@
 package boundary.conditions;
 
+import lattice.Cell;
+
 /*  Lattice Boltzmann sample, written in Java
  *
  *  Main author: Jean-Luc Falcone
@@ -33,23 +35,38 @@ package boundary.conditions;
  */
 public interface BoundaryCondition {
 	/**
-	 * @param f
-	 *            the data from a given Cell @return macroscopic value, rho,
-	 *            mass distribution
+	 * @param c
+	 *            the cell to compute rho the macroscopic density for
+	 * 
 	 */
-	public double rho(double[] f);
+	public void computeRho(Cell c);
 
 	/**
-	 * @param f
-	 *            the data from a given Cell macroscopic value, u, velocity
-	 *            distribution
+	 * @param c
+	 *            the cell to compute u, the macroscopic velocity for
 	 */
-	public double[] u(double[] f, double[] u);
+	public void computeU(Cell c);
 
-	/** implement collision */
-	public void collide(double[] f, double rho, double[] u, double uNorm2, double omega);
+	/**
+	 * implement collision
+	 * 
+	 * @param c
+	 *            the cell to compute collision for
+	 */
+	public void computeCollision(Cell c);
 
-	/** compute the ith force equilibrium */
-	double computeEquilibrium(int i, double rho, double[] u, double uNorm2);
+	/**
+	 * compute the ith force equilibrium
+	 * 
+	 * @param c
+	 *            the cell to compute Equilibrium for
+	 * @param i
+	 *            the ith microscopic velocity to compute Equilibrium for
+	 * @return the equilibrium microvelocity in the ith direction
+	 * 
+	 */
+	public double computeIthEquilibrium(Cell c, int i);
 
+	/** @return the Boundary Condition's Q size */
+	public int size();
 }

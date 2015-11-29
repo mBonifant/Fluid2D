@@ -50,7 +50,7 @@ public class DrawingTool extends MouseAdapter implements KeyListener {
 	/**
 	 * The point where a user clicked when they started a drag operation.
 	 */
-	private Point2D.Double anchor = new Point2D.Double(0, 0);
+	private Point2D.Float anchor = new Point2D.Float(0, 0);
 
 	/** true if editing the start/end of an Boundary */
 	private boolean editingExistingBoundary = false;
@@ -92,7 +92,7 @@ public class DrawingTool extends MouseAdapter implements KeyListener {
 			new DrawingToolPopUp(e.getPoint()).show(edit, e.getX(), e.getY());
 			return;
 		}
-		Point2D.Double pt = to2DPoint(e.getPoint());
+		Point2D.Float pt = to2DPoint(e.getPoint());
 		ArrayList<Boundary> list = edit.getBoundaries();
 
 		// 1 left click, handle Boundary drawing
@@ -103,12 +103,12 @@ public class DrawingTool extends MouseAdapter implements KeyListener {
 			if ((a = Boundary.nearBoundary(pt, list)) != null) {
 				setTempBoundary(a);
 				setEditingExistingBoundary(true);
-				Point2D.Double[] arr = a.getCorners();
+				Point2D.Float[] arr = a.getCorners();
 				double dist = Integer.MAX_VALUE;
 				int i = 0;
 				int j = 0;
-				for (Point2D.Double pA : arr) {
-					double t = pA.distance(pt);
+				for (Point2D.Float pA : arr) {
+					double t = (double) pA.distance(pt);
 					if (t < dist) {
 						dist = t;
 						j = i;
@@ -151,14 +151,14 @@ System.out.println("DRAGGING");		// do nothing for right drags
 		if (SwingUtilities.isRightMouseButton(e))
 			return;
 
-		Point2D.Double end = to2DPoint(e.getPoint());
+		Point2D.Float end = to2DPoint(e.getPoint());
 
 		// handle making a new Boundary
 		if (isMakingNewBoundary() || isEditingExistingBoundary()) {
 			getTempBoundary().setRect(getAnchor(), end);
 		} else if (isDraggingExistingBoundary()) {
 			// calculate translation distance
-			Point2D.Double dist = new Point2D.Double(end.x - getAnchor().x, end.y - getAnchor().y);
+			Point2D.Float dist = new Point2D.Float(end.x - getAnchor().x, end.y - getAnchor().y);
 			// apply translation
 			getTempBoundary().translate(dist);
 			// reset anchor or you'll add more than intended next drag and
@@ -214,7 +214,7 @@ System.out.println("DRAGGING");		// do nothing for right drags
 	 */
 	@Override
 	public void mouseMoved(MouseEvent e) {
-		Point2D.Double check = to2DPoint(e.getPoint());
+		Point2D.Float check = to2DPoint(e.getPoint());
 		Boundary.nearBoundary(check, edit.getBoundaries());
 		edit.repaint();
 	}
@@ -263,7 +263,7 @@ System.out.println("DRAGGING");		// do nothing for right drags
 	 * Set the new temporary Boundary to draw and check if it has a parent
 	 */
 	void startDrawingBoundary() {
-		setTempBoundary(new Boundary(getDrawingFeature(), (double) getAnchor().x, (double) getAnchor().y, 0f, 0f));
+		setTempBoundary(new Boundary(getDrawingFeature(), (float) getAnchor().x, (float) getAnchor().y, 0f, 0f));
 		edit.getBoundaries().add(getTempBoundary());
 		setMakingNewBoundary(true);
 	}
@@ -295,7 +295,7 @@ System.out.println("DRAGGING");		// do nothing for right drags
 	/**
 	 * @return the initial point of an Boundary the user started to draw from
 	 */
-	Point2D.Double getAnchor() {
+	Point2D.Float getAnchor() {
 		return this.anchor;
 	}
 
@@ -303,7 +303,7 @@ System.out.println("DRAGGING");		// do nothing for right drags
 	 * @param p
 	 *            the initial point of an Boundary the user started to draw
 	 */
-	void setAnchor(Point2D.Double p) {
+	void setAnchor(Point2D.Float p) {
 		this.anchor = p;
 	}
 
@@ -332,13 +332,13 @@ System.out.println("DRAGGING");		// do nothing for right drags
 	/**
 	 * 
 	 * @param pt
-	 *            the plain blah point to convert to a 2D Double point
-	 * @return the converted 2D Double Point
+	 *            the plain blah point to convert to a 2D double point
+	 * @return the converted 2D double Point
 	 */
-	static Point2D.Double to2DPoint(Point pt) {
+	static Point2D.Float to2DPoint(Point pt) {
 		if (pt == null)
 			return null;
-		return new Point2D.Double(pt.x, pt.y);
+		return new Point2D.Float(pt.x, pt.y);
 	}
 
 	/**
@@ -353,7 +353,7 @@ System.out.println("DRAGGING");		// do nothing for right drags
 		System.out.println("letters");
 		String keyCode = KeyEvent.getKeyText(e.getKeyCode()).toLowerCase();
 
-		Point2D.Double p = to2DPoint(edit.getMousePosition());
+		Point2D.Float p = to2DPoint(edit.getMousePosition());
 
 		// change an existing Boundaries type, if control is down and mouse
 		// over an Boundary
@@ -575,7 +575,7 @@ System.out.println("DRAGGING");		// do nothing for right drags
 		private Feature snapDrawingFeature;
 
 		/** the start point of tempBoundary at one instance in time */
-		private Point2D.Double snapStart;
+		private Point2D.Float snapStart;
 
 		/**
 		 * Set values of this snapshot based on this tool's variables currently
