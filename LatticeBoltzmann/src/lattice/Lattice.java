@@ -3,11 +3,11 @@ package lattice;
 import gui.Boundary;
 import gui.RefreshListener;
 
+import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-import java.awt.geom.Rectangle2D.Double;
 import java.awt.geom.RectangularShape;
 import java.util.Iterator;
 import java.util.List;
@@ -16,12 +16,6 @@ import java.util.Vector;
 import javax.swing.Timer;
 
 import Fluids.Liquid;
-import Fluids.Water;
-import boundary.conditions.BoundaryCondition;
-import boundary.conditions.Fluid;
-import boundary.conditions.Sink;
-import boundary.conditions.Source;
-import boundary.conditions.Wall;
 
 /***
  * A Lattice is a 3 Dimensional Array defining a collection of Cells through
@@ -31,32 +25,56 @@ import boundary.conditions.Wall;
  */
 public class Lattice {
 
+	/** 4/9 */
+	double four9ths = 4.0 / 9.0;
+	/** 1/9 */
+	double one9th = 1.0 / 9.0;
+	/** 1/36 */
+	double one36th = 1.0 / 36.0;
+
 	// main lattice structure
+	/** width of the chamber */
+	public int xdim = 200;
+	/** length of the chamber */
+	public int ydim = 80;
+	/** micro density of fluid not moving */
+	double[][] n0;
+	/** micro density flowing north */
+	double[][] nN;
+	/** micro density flowing south */
+	double[][] nS;
+	/** micro density flowing east */
+	double[][] nE;
+	/** micro density flowing west */
+	double[][] nW;
+	/** micro density flowing north west */
+	double[][] nNW;
+	/** micro density flowing north east */
+	double[][] nNE;
+	/** micro density flowing south west */
+	double[][] nSW;
+	/** micro density flowing south east */
+	double[][] nSE;
 
-	/** Lattice containing cells of fluid. */
-	public Cell[][] lattice;
+	// Other arrays calculated from the above:
+	/** macro density */
+	public double[][] density;
+	/** x velocity */
+	public double[][] xvel;
+	/** y velocity */
+	public double[][] yvel;
+	/** speed squared */
+	double[][] speed2;;
+	/** curl of the fluid */
+	double[][] curl;
 
-	/** a temporary copy of the lattice */
-	private Cell[][] tmp;
-
-	/** The number of microscopic velocities each cell will track */
-	public final Q cellDim;
-
-	/** The length of the lattice */
-	public final int length;
-	/** The width of the lattice */
-	public final int width;
-
-	// boundary conditions
-
-	/** Boundary Condition for a fluid Source */
-	public final Source src;
-	/** Boundary Condition for a fluid Sink */
-	public final Sink sink;
-	/** Boundary Condition for a solid wall */
-	public final Wall wall;
-	/** Boundary Condition for a fluid */
-	public final Fluid fluid;
+	// boundaries
+	/** walls for bounce back */
+	boolean[][] barrier;
+	/** in flowing fluid */
+	boolean[][] source;
+	/** out flowing fluid */
+	boolean[][] sink;
 
 	/** default velocity of in flowing fluid */
 	private double[] defU;
@@ -78,6 +96,7 @@ public class Lattice {
 	/** A time that tells the Lattice how often to update */
 	public Timer tm = new Timer(10000, this.ac);
 
+	/** the liquid propagating along the lattice */
 	public Liquid l;
 
 	/**
@@ -90,51 +109,59 @@ public class Lattice {
 	 * 
 	 * @param c
 	 *            the number of microscopic velocities each cell tracks
-	 * @param v
-	 *            viscosity of the fluid on the lattice
+	 * @param liq
+	 *            the liquid propagating along the lattice (provides its
+	 *            desisty, temperature, viscosity, and omega)
 	 * @param u
 	 *            incoming velocity
 	 * 
-	 * @param density
-	 *            the density of the fluid
 	 * @param list
 	 *            a list of boundaries to add to the lattice
+	 * @param empty
+	 *            true if the lattice is being filled, otherwise false
 	 */
-	public Lattice(int w, int l, Q c, Liquid liq, double[] u,
-			List<Boundary> list) {
-		this.length = l;
-		this.width = w;
-		this.cellDim = c;
+	public Lattice(int w, int l, Liquid liq, double[] u, List<Boundary> list, boolean empty) {
+		this.ydim = l;
+		this.xdim = w;
 		this.l = liq;
-		this.lattice = new Cell[this.width][this.length];
-		this.tmp = new Cell[this.width][this.length];
+		this.n0 = new double[this.xdim][this.ydim];
+		this.nN = new double[this.xdim][this.ydim];
+		this.nS = new double[this.xdim][this.ydim];
+		this.nE = new double[this.xdim][this.ydim];
+		this.nW = new double[this.xdim][this.ydim];
+		this.nNW = new double[this.xdim][this.ydim];
+		this.nNE = new double[this.xdim][this.ydim];
+		this.nSW = new double[this.xdim][this.ydim];
+		this.nSE = new double[this.xdim][this.ydim];
+
+		// Other arrays calculated from the above:
+		this.density = new double[this.xdim][this.ydim]; // total density
+		this.xvel = new double[this.xdim][this.ydim]; // macroscopic x velocity
+		this.yvel = new double[this.xdim][this.ydim]; // macroscopic y velocity
+		this.speed2 = new double[this.xdim][this.ydim];// macroscopic speed
+														// squared
+		this.curl = new double[this.xdim][this.ydim];
+
+		// Boolean array, true at sites that contain barriers:
+		this.barrier = new boolean[this.xdim][this.ydim];
+		this.sink = new boolean[this.xdim][this.ydim];
+		this.source = new boolean[this.xdim][this.ydim];
 		this.defU = u;
 		this.defUNorm = u[0] * u[0] + u[1] * u[1];
-		System.out.println("defU:" + u[0] + "," + u[1] + " norm:"
-				+ this.defUNorm);
-		this.wall = new Wall(this.cellDim, this.l);
-		this.sink = new Sink(this.cellDim, this.l);
-		this.src = new Source(this.cellDim, this.defU, this.l);
-		this.fluid = new Fluid(this.cellDim, this.l);
 
-		for (int i = 0; i < this.width; i++)
-			for (int j = 0; j < this.length; j++) {
-				this.lattice[i][j] = new Cell(this.fluid, i, j);
-				this.tmp[i][j] = new Cell(this.fluid, i, j);
-				continue;
-			}
-		this.initVelocity(this.lattice);
-		this.initVelocity(this.tmp);
+		this.initVelocity(empty);
 
-		this.addBoundaryCondition(this.wall, new Rectangle2D.Double(0, 0,
-				this.width, 1));
-		this.addBoundaryCondition(this.wall, new Rectangle2D.Double(0,
-				this.length - 1, this.width, 1));
 		for (Boundary b : list)
 			this.addBoundaryCondition(b);
 
 	}
 
+	/**
+	 * Add the given boundary to the system
+	 * 
+	 * @param b
+	 *            the given boundary
+	 */
 	private void addBoundaryCondition(Boundary b) {
 		switch (b.rectangle) {
 		case SINK_ELLI:
@@ -143,39 +170,54 @@ public class Lattice {
 			return;
 		case SOURCE_ELLI:
 		case SOURCE_RECT:
-			this.addBoundaryCondition(this.src, b.shape);
+			this.addBoundaryCondition(this.source, b.shape);
 			return;
 		case WALL_ELLI:
 		case WALL_RECT:
-			this.addBoundaryCondition(this.wall, b.shape);
+			this.addBoundaryCondition(this.barrier, b.shape);
 			return;
 		case FLUID_ELLI:
 		case FLUID_RECT: {
-			this.addBoundaryCondition(this.fluid, b.shape);
-			System.out.println("adding fluid bound");
-		}
+			this.addBoundaryCondition(null, b.shape);
 			return;
+
+		}
 		}
 	}
 
 	/**
 	 * Add the given boundary condition to all points inside the given shape.
 	 * 
-	 * @param b
-	 *            the condition to set
+	 * @param shape
+	 *            the condition being set (or null if removing conditions )
 	 * @param rs
 	 *            the shape to apply the condition to.
 	 */
-	private void addBoundaryCondition(BoundaryCondition b, RectangularShape rs) {
+	private void addBoundaryCondition(boolean[][] shape, RectangularShape rs) {
 		// for all points in the shape
 		for (int i = (int) rs.getMinX(); i < rs.getMaxX(); i++)
 			for (int j = (int) rs.getMinY(); j < rs.getMaxY(); j++) {
 				// if the point is also in the lattice, set the boundary
 				// condition to the given condition
-				if (i >= 0 && i < this.width && j >= 0 && j < this.length
-						&& rs.contains(new Point2D.Float(i, j))) {
-					this.lattice[i][j].bc = b;
-					this.tmp[i][j].bc = b;
+				if (i >= 0 && i < this.xdim && j >= 0 && j < this.ydim && rs.contains(new Point2D.Float(i, j))) {
+					if (shape == this.barrier) {
+						this.barrier[i][j] = true;
+						this.sink[i][j] = false;
+						this.source[i][j] = false;
+
+					} else if (shape == this.sink) {
+						this.barrier[i][j] = false;
+						this.sink[i][j] = true;
+						this.source[i][j] = false;
+					} else if (shape == this.source) {
+						this.barrier[i][j] = false;
+						this.sink[i][j] = false;
+						this.source[i][j] = true;
+					} else {
+						this.barrier[i][j] = false;
+						this.sink[i][j] = false;
+						this.source[i][j] = false;
+					}
 				}
 			}
 	}
@@ -188,7 +230,7 @@ public class Lattice {
 	 *            the rectangular shape to add
 	 */
 	public void addRectangularWall(RectangularShape rs) {
-		addBoundaryCondition(this.wall, rs);
+		addBoundaryCondition(this.barrier, rs);
 	}
 
 	/**
@@ -211,7 +253,7 @@ public class Lattice {
 	 *            the rectangular shape to add
 	 */
 	public void addRectangularSource(RectangularShape rs) {
-		addBoundaryCondition(this.src, rs);
+		addBoundaryCondition(this.source, rs);
 	}
 
 	/**
@@ -222,7 +264,7 @@ public class Lattice {
 	 *            the rectangular shape to add
 	 */
 	public void addRectangularFluid(RectangularShape rs) {
-		addBoundaryCondition(this.fluid, rs);
+		addBoundaryCondition(null, rs);
 
 	}
 
@@ -244,58 +286,201 @@ public class Lattice {
 			this.listeners.remove(rl);
 	}
 
-	/** Calculate the collision step of LBM */
-	private void collide() {
-		for (int i = 0; i < this.width; i++)
-			for (int j = 0; j < this.length; j++)
-				this.lattice[i][j].collide();
-	}
-
-	/** Calculate the streaming step of LBM */
-	private void stream() {
-		int prevX, prevY;
-		for (int x = 0; x < this.width; x++) {
-			for (int y = 0; y < this.length; y++) {
-				for (int i = 0; i < this.cellDim.size; i++) {
-					prevX = (int) (x - this.cellDim.velocities[i][0]);
-					prevY = (int) (y - this.cellDim.velocities[i][1]);
-					if (prevX < 0 || prevY < 0 || prevX >= this.width
-							|| prevY >= this.length)
-						continue;
-					this.tmp[x][y]
-							.setF(this.lattice[prevX][prevY].getF()[i], i);
+	/** bounce fluid back at walls */
+	void bounce() {
+		for (int x = 0; x < this.xdim; x++) {
+			for (int y = 0; y < this.ydim; y++) {
+				if (this.barrier[x][y]) {
+					if (this.nN[x][y] > 0 && y - 1 >= 0) {
+						this.nS[x][y - 1] += this.nN[x][y];
+						this.nN[x][y] = 0;
+					}
+					if (this.nS[x][y] > 0 && y + 1 < this.ydim) {
+						this.nN[x][y + 1] += this.nS[x][y];
+						this.nS[x][y] = 0;
+					}
+					if (this.nE[x][y] > 0 && x - 1 >= 0) {
+						this.nW[x - 1][y] += this.nE[x][y];
+						this.nE[x][y] = 0;
+					}
+					if (this.nW[x][y] > 0 && x + 1 < this.xdim) {
+						this.nE[x + 1][y] += this.nW[x][y];
+						this.nW[x][y] = 0;
+					}
+					if (this.nNW[x][y] > 0 && x + 1 < this.xdim && y - 1 >= 0) {
+						this.nSE[x + 1][y - 1] += this.nNW[x][y];
+						this.nNW[x][y] = 0;
+					}
+					if (this.nNE[x][y] > 0 && x - 1 >= 0 && y - 1 >= 0) {
+						this.nSW[x - 1][y - 1] += this.nNE[x][y];
+						this.nNE[x][y] = 0;
+					}
+					if (this.nSW[x][y] > 0 && x + 1 < this.xdim && y + 1 < this.ydim) {
+						this.nNE[x + 1][y + 1] += this.nSW[x][y];
+						this.nSW[x][y] = 0;
+					}
+					if (this.nSE[x][y] > 0 && x - 1 >= 0 && y + 1 < this.ydim) {
+						this.nNW[x - 1][y + 1] += this.nSE[x][y];
+						this.nSE[x][y] = 0;
+					}
 				}
 			}
 		}
+	}
 
-		// edit bounds of chamber
-		double v = Math.sqrt(this.defUNorm);
-		double east = 1f / 9f * (1 + 3 * v + 3 * this.defUNorm), northOrSouthEast = 1f / 36f * (1 + 3 * v + 3 * this.defUNorm);
-		double west = 1f / 9f * (1 - 3 * v + 3 * this.defUNorm), northOrSouthWest = 1f / 36f * (1 - 3 * v + 3 * this.defUNorm);
-
-		for (int y = 0; y < this.length; y++) {
-
-			if (this.lattice[0][y].bc == this.fluid) {
-				this.lattice[0][y].setF(east, 3);
-				this.lattice[0][y].setF(northOrSouthEast, 7);// northeast
-				this.lattice[0][y].setF(northOrSouthEast, 6);// southeast
-
+	/** stream fluid from one lattice cell to the next */
+	private void stream() {
+		for (int x = 0; x < this.xdim - 1; x++) { // first start in NW corner...
+			for (int y = this.ydim - 1; y > 0; y--) {
+				this.nN[x][y] = this.nN[x][y - 1]; // move the north-moving
+													// particles
+				this.nNW[x][y] = this.nNW[x + 1][y - 1]; // and the
+															// northwest-moving
+				// particles
 			}
 		}
+		for (int x = this.xdim - 1; x > 0; x--) { // now start in NE corner...
+			for (int y = this.ydim - 1; y > 0; y--) {
+				this.nE[x][y] = this.nE[x - 1][y]; // move the east-moving
+													// particles
+				this.nNE[x][y] = this.nNE[x - 1][y - 1]; // and the
+															// northeast-moving
+				// particles
+			}
+		}
+		for (int x = this.xdim - 1; x > 0; x--) { // now start in SE corner...
+			for (int y = 0; y < this.ydim - 1; y++) {
+				this.nS[x][y] = this.nS[x][y + 1]; // move the south-moving
+													// particles
+				this.nSE[x][y] = this.nSE[x - 1][y + 1]; // and the
+															// southeast-moving
+				// particles
+			}
+		}
+		for (int x = 0; x < this.xdim - 1; x++) { // now start in the SW
+													// corner...
+			for (int y = 0; y < this.ydim - 1; y++) {
+				this.nW[x][y] = this.nW[x + 1][y]; // move the west-moving
+													// particles
+				this.nSW[x][y] = this.nSW[x + 1][y + 1]; // and the
+															// southwest-moving
+				// particles
+			}
+		}
+		double v = Math.sqrt(getUNorm());
+
+		// We missed a few at the left and right edges:
+		for (int y = 0; y < this.ydim - 1; y++) {
+			this.nS[0][y] = this.nS[0][y + 1];
+		}
+		for (int y = this.ydim - 1; y > 0; y--) {
+			this.nN[this.xdim - 1][y] = this.nN[this.xdim - 1][y - 1];
+		}
+		// Now handle left boundary as in Pullan's example code:
+		// Stream particles in from the non-existent space to the left, with the
+		// user-determined speed:
+
+		for (int y = 0; y < this.ydim; y++)
+			if (!this.barrier[0][y]) {
+				this.nE[0][y] = this.one9th * (1 + 3 * v + 3 * v * v);
+				this.nNE[0][y] = this.one36th * (1 + 3 * v + 3 * v * v);
+				this.nSE[0][y] = this.one36th * (1 + 3 * v + 3 * v * v);
+			}
+
 		// Try the same thing at the right edge and see if it works:
-		for (int y = 0; y < this.length; y++) {
 
-			if (this.lattice[this.width - 1][y].bc == this.fluid) {
-				this.lattice[this.width - 1][y].setF(west, 4);
-				this.lattice[this.width - 1][y].setF(northOrSouthWest, 5);// northWest
-				this.lattice[this.width - 1][y].setF(northOrSouthWest, 8);// southWest
+		for (int y = 0; y < this.ydim; y++)
+			if (!this.barrier[this.xdim - 1][y]) {
+				this.nW[this.xdim - 1][y] = this.one9th * (1 - 3 * v + 3 * v * v);
+				this.nNW[this.xdim - 1][y] = this.one36th * (1 - 3 * v + 3 * v * v);
+				this.nSW[this.xdim - 1][y] = this.one36th * (1 - 3 * v + 3 * v * v);
+			}
 
+		// Now handle top and bottom edges:
+		for (int x = 0; x < this.xdim; x++) {
+			this.n0[x][0] = this.four9ths * (1 - 1.5 * v * v);
+			this.nE[x][0] = this.one9th * (1 + 3 * v + 3 * v * v);
+			this.nW[x][0] = this.one9th * (1 - 3 * v + 3 * v * v);
+			this.nN[x][0] = this.one9th * (1 - 1.5 * v * v);
+			this.nS[x][0] = this.one9th * (1 - 1.5 * v * v);
+			this.nNE[x][0] = this.one36th * (1 + 3 * v + 3 * v * v);
+			this.nSE[x][0] = this.one36th * (1 + 3 * v + 3 * v * v);
+			this.nNW[x][0] = this.one36th * (1 - 3 * v + 3 * v * v);
+			this.nSW[x][0] = this.one36th * (1 - 3 * v + 3 * v * v);
+			this.n0[x][this.ydim - 1] = this.four9ths * (1 - 1.5 * v * v);
+			this.nE[x][this.ydim - 1] = this.one9th * (1 + 3 * v + 3 * v * v);
+			this.nW[x][this.ydim - 1] = this.one9th * (1 - 3 * v + 3 * v * v);
+			this.nN[x][this.ydim - 1] = this.one9th * (1 - 1.5 * v * v);
+			this.nS[x][this.ydim - 1] = this.one9th * (1 - 1.5 * v * v);
+			this.nNE[x][this.ydim - 1] = this.one36th * (1 + 3 * v + 3 * v * v);
+			this.nSE[x][this.ydim - 1] = this.one36th * (1 + 3 * v + 3 * v * v);
+			this.nNW[x][this.ydim - 1] = this.one36th * (1 - 3 * v + 3 * v * v);
+			this.nSW[x][this.ydim - 1] = this.one36th * (1 - 3 * v + 3 * v * v);
+		}
+	}
+
+	/** compute collision of fluids */
+	private void collide() {
+		double n, one9thn, one36thn, vx, vy, vx2, vy2, vx3, vy3, vxvy2, v2, v215;
+		double omega = this.l.getOmega();
+		for (int x = 0; x < this.xdim; x++) {
+			for (int y = 0; y < this.ydim; y++) {
+				if (!this.barrier[x][y]) {
+					// RHO
+					this.n0[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*four9ths;
+					this.nN[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one9th;
+					this.nS[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one9th;
+					this.nE[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one9th;
+					this.nW[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one9th;
+					this.nNW[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one36th;
+					this.nNE[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one36th;
+					this.nSW[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one36th;
+					this.nSE[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one36th;
+
+					n = this.n0[x][y] + this.nN[x][y] + this.nS[x][y] + this.nE[x][y] + this.nW[x][y] + this.nNW[x][y]
+							+ this.nNE[x][y] + this.nSW[x][y] + this.nSE[x][y];
+
+					this.density[x][y] = n; // macroscopic density may be needed
+											// for
+					// plotting
+
+					// U
+					one9thn = this.one9th * n;
+					one36thn = this.one36th * n;
+					if (n > 0) {
+						vx = (this.nE[x][y] + this.nNE[x][y] + this.nSE[x][y] - this.nW[x][y] - this.nNW[x][y]
+								- this.nSW[x][y]) / n;
+					} else
+						vx = 0;
+					this.xvel[x][y] = vx; // may be needed for plotting
+					if (n > 0) {
+						vy = (this.nN[x][y] + this.nNE[x][y] + this.nNW[x][y] - this.nS[x][y] - this.nSE[x][y]
+								- this.nSW[x][y]) / n;
+					} else
+						vy = 0;
+					this.yvel[x][y] = vy; // may be needed for plotting
+
+					// F
+					vx3 = 3 * vx;
+					vy3 = 3 * vy;
+					vx2 = vx * vx;
+					vy2 = vy * vy;
+					vxvy2 = 2 * vx * vy;
+					v2 = vx2 + vy2;
+					this.speed2[x][y] = v2; // may be needed for plotting
+					v215 = 1.5 * v2;
+					this.n0[x][y] += omega * (this.four9ths * n * (1 - v215) - this.n0[x][y]);
+					this.nE[x][y] += omega * (one9thn * (1 + vx3 + 4.5 * vx2 - v215) - this.nE[x][y]);
+					this.nW[x][y] += omega * (one9thn * (1 - vx3 + 4.5 * vx2 - v215) - this.nW[x][y]);
+					this.nN[x][y] += omega * (one9thn * (1 + vy3 + 4.5 * vy2 - v215) - this.nN[x][y]);
+					this.nS[x][y] += omega * (one9thn * (1 - vy3 + 4.5 * vy2 - v215) - this.nS[x][y]);
+					this.nNE[x][y] += omega * (one36thn * (1 + vx3 + vy3 + 4.5 * (v2 + vxvy2) - v215) - this.nNE[x][y]);
+					this.nNW[x][y] += omega * (one36thn * (1 - vx3 + vy3 + 4.5 * (v2 - vxvy2) - v215) - this.nNW[x][y]);
+					this.nSE[x][y] += omega * (one36thn * (1 + vx3 - vy3 + 4.5 * (v2 - vxvy2) - v215) - this.nSE[x][y]);
+					this.nSW[x][y] += omega * (one36thn * (1 - vx3 - vy3 + 4.5 * (v2 + vxvy2) - v215) - this.nSW[x][y]);
+				}
 			}
 		}
-
-		Cell[][] swapLattice = this.lattice;
-		this.lattice = this.tmp;
-		this.tmp = swapLattice;
 	}
 
 	/** Process one steam/collision and tell listeners to update */
@@ -303,6 +488,7 @@ public class Lattice {
 
 		collide();
 		stream();
+		bounce();
 		computeCurl();
 
 		Iterator<RefreshListener> itr = this.listeners.iterator();
@@ -311,24 +497,45 @@ public class Lattice {
 	}
 
 	/**
-	 * Initalizes the velocity of all cells in the lattice
+	 * Initializes the velocity of all cells in the lattice
 	 * 
-	 * @param l
-	 *            the Lattice to init (must init lattice and temp lattice
+	 * @param empty
+	 *            true if everything should be set to 0 for an empty lattice
 	 */
-	public void initVelocity(Cell[][] l) {
-		System.out.println("U=" + this.defU[0] + "," + this.defU[1]);
-		for (int x = 0; x < this.width; x++)
-			for (int y = 0; y < this.length; y++) {
-				// this.initVelocityColumnEast(y, lattice);
-				for (int i = 0; i < this.cellDim.size; i++) {
-					l[x][y].setU(this.defU[0], this.defU[1]);
-					l[x][y].setRho(this.l.getDensity());
-					double fEq = l[x][y].bc.computeIthEquilibrium(l[x][y], i);
-					l[x][y].setF(fEq, i);
-
+	private synchronized void initVelocity(boolean empty) {
+		double v = Math.sqrt(this.defUNorm);
+		for (int x = 0; x < this.xdim; x++) {
+			for (int y = 0; y < this.ydim; y++) {
+				if (this.barrier[x][y] || empty) {
+					this.n0[x][y] = 0;
+					this.nE[x][y] = 0;
+					this.nW[x][y] = 0;
+					this.nN[x][y] = 0;
+					this.nS[x][y] = 0;
+					this.nNE[x][y] = 0;
+					this.nNW[x][y] = 0;
+					this.nSE[x][y] = 0;
+					this.nSW[x][y] = 0;
+					this.xvel[x][y] = 0;
+					this.yvel[x][y] = 0;
+					this.speed2[x][y] = 0;
+				} else {
+					this.n0[x][y] = Velocity.frac4in9 * (1 - 1.5 * v * v);
+					this.nE[x][y] = Velocity.frac1in9 * (1 + 3 * v + 3 * v * v);
+					this.nW[x][y] = Velocity.frac1in9 * (1 - 3 * v + 3 * v * v);
+					this.nN[x][y] = Velocity.frac1in9 * (1 - 1.5 * v * v);
+					this.nS[x][y] = Velocity.frac1in9 * (1 - 1.5 * v * v);
+					this.nNE[x][y] = Velocity.frac1in36 * (1 + 3 * v + 3 * v * v);
+					this.nSE[x][y] = Velocity.frac1in36 * (1 + 3 * v + 3 * v * v);
+					this.nNW[x][y] = Velocity.frac1in36 * (1 - 3 * v + 3 * v * v);
+					this.nSW[x][y] = Velocity.frac1in36 * (1 - 3 * v + 3 * v * v);
+					this.density[x][y] = this.l.getDensity();
+					this.xvel[x][y] = this.defU[0];
+					this.yvel[x][y] = this.defU[1];
+					this.speed2[x][y] = this.defUNorm;
 				}
 			}
+		}
 	}
 
 	/**
@@ -336,36 +543,129 @@ public class Lattice {
 	 * 
 	 */
 	public void computeCurl() {
-		for (int x = 1; x < this.width - 1; x++) {
-			for (int y = 1; y < this.length - 1; y++) {
-				this.tmp[x][y].curl = (this.lattice[x + 1][y].getY() - this.lattice[x - 1][y]
-						.getY())
-						- (this.lattice[x][y + 1].getX() - this.lattice[x][y - 1]
-								.getX());
+		for (int x = 1; x < this.xdim - 1; x++) {
+			for (int y = 1; y < this.ydim - 1; y++) {
+				this.curl[x][y] = (this.yvel[x + 1][y] - this.yvel[x - 1][y])
+						- (this.xvel[x][y + 1] - this.xvel[x][y - 1]);
 			}
 		}
-
-		for (int y = 1; y < this.length - 1; y++) {
-			this.tmp[0][y].curl = 2
-					* (this.lattice[1][y].getY() - this.lattice[0][y].getY())
-					- (this.lattice[0][y + 1].getX() - this.lattice[0][y - 1]
-							.getX());
-
-			this.tmp[this.width - 1][y].curl = 2
-					* (this.lattice[this.width - 1][y].getY() - this.lattice[this.width - 2][y]
-							.getY())
-					- (this.lattice[this.width - 1][y + 1].getX() - this.lattice[this.width - 1][y - 1]
-							.getX());
+		for (int y = 1; y < this.ydim - 1; y++) {
+			this.curl[0][y] = 2 * (this.yvel[1][y] - this.yvel[0][y]) - (this.xvel[0][y + 1] - this.xvel[0][y - 1]);
+			this.curl[this.xdim - 1][y] = 2 * (this.yvel[this.xdim - 1][y] - this.yvel[this.xdim - 2][y])
+					- (this.xvel[this.xdim - 1][y + 1] - this.xvel[this.xdim - 1][y - 1]);
 		}
-
 	}
 
+	/**
+	 * @param l
+	 *            the new liquid to switch the lattice to
+	 */
 	public void setLiquid(Liquid l) {
 		this.l = l;
-		this.wall.setL(l);
-		this.fluid.setL(l);
-		this.src.setL(l);
-		this.sink.setL(l);
-
 	}
+
+	/**
+	 * Change the in-flow velocity
+	 * 
+	 * @param xV
+	 *            the x in flow
+	 * @param yV
+	 *            the y in flow
+	 */
+	public void setFlow(double xV, double yV) {
+		this.defU = new double[] { xV, yV };
+		this.defUNorm = this.defU[0] * this.defU[0] + this.defU[1] * this.defU[1];
+	}
+
+	/**
+	 * @return the default in flow
+	 */
+	public double[] getU() {
+		return this.defU;
+	}
+
+	/** the speed squared of the default in flow */
+	public double getUNorm() {
+		return this.defUNorm;
+	}
+
+	/** List of possible stats to read from the cell and display */
+	public static enum ColorStats {
+		/** the speed in speedSq at this cell */
+		speed, /** macroscopic density at this cell */
+		rho, /** speed in the x direction */
+		xSpeed, /** speed in the y direction */
+		ySpeed, /** the curl of the flow around this a cell */
+		curl, /** micro density 0 */
+		f0, /** micro density 1 */
+		f1, /** micro density 2 */
+		f2, /** micro density 3 */
+		f3, /** micro density 4 */
+		f4, /** micro density 5 */
+		f5, /** micro density 6 */
+		f6, /** micro density 7 */
+		f7, /** micro density 8 */
+		f8;
+	}
+
+	/**
+	 * 
+	 * @param cs
+	 *            which Stat to base the retrieved Color on
+	 * @return the given value normalized by the tanh function
+	 */
+	public Color getColor(ColorStats cs, float factor, int i, int j) {
+		if (this.barrier[i][j])
+			return Color.BLACK;
+		double f = 0;
+		switch (cs) {
+		case rho:
+			f = this.density[i][j];
+			break;
+		case speed:
+			f = this.speed2[i][j];
+			break;
+		case xSpeed:
+			f = this.xvel[i][j];
+			break;
+		case ySpeed:
+			f = this.yvel[i][j];
+			break;
+		case f0:
+			f = this.n0[i][j];
+			break;
+		case f1:
+			f = this.nN[i][j];
+			break;
+		case f2:
+			f = this.nS[i][j];
+			break;
+		case f3:
+			f = this.nE[i][j];
+			break;
+		case f4:
+			f = this.nW[i][j];
+			break;
+		case f5:
+			f = this.nNW[i][j];
+			break;
+		case f6:
+			f = this.nNE[i][j];
+			break;
+		case f7:
+			f = this.nSW[i][j];
+			break;
+		case f8:
+			f = this.nSE[i][j];
+			break;
+		case curl:
+			f = this.curl[i][j];
+			break;
+		default:
+			break;
+		}
+
+		return Color.getHSBColor((float) f * factor, 0.7f, 0.9f);
+	}
+
 }

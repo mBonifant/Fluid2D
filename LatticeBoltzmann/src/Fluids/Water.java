@@ -9,7 +9,7 @@ package Fluids;
 public class Water implements Liquid {
 	/** A Map of the kinematic viscosity of waters temperature increases */
 	public static double[] viscosityFromTemp = { 1.787, 1.519, 1.307, 1.004,
-			0.801, 0.658, 0.553, 0.475, 0.413, 0.365, 0.326, 0.294 };
+			0.801, 0.658, 0.553, 0.475, 0.413, 0.365, 0.1 };
 	/** A Map of the density of water as temperature increases */
 	public static double[] densityFromTemp = {};
 
@@ -59,6 +59,7 @@ public class Water implements Liquid {
 		this.density = 1;
 		this.viscosity = viscosityFromTemp[t / 10];
 		this.omega = 1f / (3f * this.viscosity + 0.5f);
+		System.out.println(this.viscosity);
 
 	}
 
