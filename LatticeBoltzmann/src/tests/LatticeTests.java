@@ -11,9 +11,7 @@ import Fluids.Water;
 import gui.Boundary;
 import gui.Feature;
 import gui.LatticePanel;
-import lattice.Cell;
 import lattice.Lattice;
-import lattice.Q;
 
 /**
  * Test the Lattice structures by adding shapes and ensuring they are added
@@ -39,8 +37,8 @@ public class LatticeTests {
 		Ellipse2D.Float es3 = new Ellipse2D.Float(200, 300, 30, 25);
 		Boundary b4 = new Boundary(Feature.WALL_RECT, 2, 2, 1, 1);
 
-		Lattice l = new Lattice(5, 5, Q.nine, new Water(0),
-				new double[] { 1, 0 }, new ArrayList<>());
+		Lattice l = new Lattice(5, 5, new Water(0),
+				new double[] { 1, 0 }, new ArrayList<>(), false);
 
 		// l.addRectangularWall(rs1);
 		// l.addRectangularWall(rs2);
@@ -57,7 +55,7 @@ public class LatticeTests {
 
 		// arr.add(b4);
 		JFrame f = new JFrame();
-		LatticePanel p = new LatticePanel(l, 50, 1024, Cell.ColorStats.speed);
+		LatticePanel p = new LatticePanel(l, 50, 1024, Lattice.ColorStats.speed);
 		f.add(p);
 		f.pack();
 		f.setVisible(true);

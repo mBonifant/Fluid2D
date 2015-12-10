@@ -5,6 +5,7 @@ import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Float;
+import java.awt.geom.Rectangle2D.Double;
 import java.awt.geom.Rectangle2D;
 import java.awt.geom.RectangularShape;
 import java.util.ArrayList;
@@ -71,9 +72,9 @@ public class Boundary {
 			this.shape = new Ellipse2D.Float(x, y, width, height);
 	}
 
-	/////////////////////
+	// ///////////////////
 	// general methods //
-	/////////////////////
+	// ///////////////////
 
 	/**
 	 * Generate a String in the form f{[x,y;w,h] i[x',y';w',h']...}, if
@@ -109,7 +110,8 @@ public class Boundary {
 
 	/**
 	 */
-	public static void paintBoundarys(Graphics2D g, List<Boundary> bounds, int xi, int yi) {
+	public static void paintBoundarys(Graphics2D g, List<Boundary> bounds,
+			int xi, int yi) {
 		int x = 0;
 		int y = 0;
 		for (Boundary bound : bounds) {
@@ -125,9 +127,11 @@ public class Boundary {
 			y += bound.shape.getMinY();
 
 			if (bound.rectangle.isRectangle())
-				g.fillRect(x, y, (int) bound.shape.getWidth(), (int) bound.shape.getHeight());
+				g.fillRect(x, y, (int) bound.shape.getWidth(),
+						(int) bound.shape.getHeight());
 			else
-				g.fillOval(x, y, (int) bound.shape.getWidth(), (int) bound.shape.getHeight());
+				g.fillOval(x, y, (int) bound.shape.getWidth(),
+						(int) bound.shape.getHeight());
 
 		}
 	}
@@ -135,7 +139,8 @@ public class Boundary {
 	/** performs a deep copy of this Boundary */
 	@Override
 	public Boundary clone() {
-		return new Boundary(rectangle, (float) shape.getMinX(), (float) shape.getMinY(), (float) shape.getWidth(),
+		return new Boundary(rectangle, (float) shape.getMinX(),
+				(float) shape.getMinY(), (float) shape.getWidth(),
 				(float) shape.getHeight());
 	}
 
@@ -167,7 +172,8 @@ public class Boundary {
 	public float getAspectRatio() {
 		float widthOverHeight = (float) (shape.getWidth() / shape.getHeight());
 		float heightOverWidth = (float) (shape.getHeight() / shape.getWidth());
-		return widthOverHeight < heightOverWidth ? widthOverHeight : heightOverWidth;
+		return widthOverHeight < heightOverWidth ? widthOverHeight
+				: heightOverWidth;
 
 	}
 
@@ -196,14 +202,18 @@ public class Boundary {
 
 		// define the inner and outer boarders of the MARGIN range
 		if (this.rectangle.isRectangle()) {
-			inner = new Rectangle2D.Float( s.x + MARGIN,  s.y + MARGIN,
-					(float) this.shape.getWidth() - crop, (float) this.shape.getHeight() - crop);
-			outer = new Rectangle2D.Float(s.x - MARGIN, s.y - MARGIN, (float) this.shape.getWidth() + crop,
+			inner = new Rectangle2D.Float(s.x + MARGIN, s.y + MARGIN,
+					(float) this.shape.getWidth() - crop,
+					(float) this.shape.getHeight() - crop);
+			outer = new Rectangle2D.Float(s.x - MARGIN, s.y - MARGIN,
+					(float) this.shape.getWidth() + crop,
 					(float) this.shape.getHeight() + crop);
 		} else {
-			inner = new Ellipse2D.Float( s.x + MARGIN, s.y + MARGIN, (float) this.shape.getWidth() - crop,
+			inner = new Ellipse2D.Float(s.x + MARGIN, s.y + MARGIN,
+					(float) this.shape.getWidth() - crop,
 					(float) this.shape.getHeight() - crop);
-			outer = new Ellipse2D.Float(s.x - MARGIN, s.y - MARGIN, (float) this.shape.getWidth() + crop,
+			outer = new Ellipse2D.Float(s.x - MARGIN, s.y - MARGIN,
+					(float) this.shape.getWidth() + crop,
 					(float) this.shape.getHeight() + crop);
 		}
 		ret = !inner.contains(pt) && outer.contains(pt);
@@ -214,7 +224,8 @@ public class Boundary {
 	 * @return the start point of this Boundary relative to its image origin
 	 */
 	public Point2D.Float getStart() {
-		return new Point2D.Float((float)this.shape.getX(), (float)this.shape.getY());
+		return new Point2D.Float((float) this.shape.getX(),
+				(float) this.shape.getY());
 	}
 
 	/**
@@ -234,7 +245,8 @@ public class Boundary {
 	 *            origin)
 	 */
 	void setStart(Point2D.Float p) {
-		this.shape.setFrame(p.x, p.y, this.shape.getMaxX() - p.x, this.shape.getMaxY() - p.y);
+		this.shape.setFrame(p.x, p.y, this.shape.getMaxX() - p.x,
+				this.shape.getMaxY() - p.y);
 	}
 
 	/**
@@ -243,7 +255,8 @@ public class Boundary {
 	 *            origin)
 	 */
 	void setEnd(Point2D.Float p) {
-		this.shape.setFrame(this.shape.getX(), this.shape.getY(), p.x - this.shape.getX(), p.y - this.shape.getY());
+		this.shape.setFrame(this.shape.getX(), this.shape.getY(), p.x
+				- this.shape.getX(), p.y - this.shape.getY());
 	}
 
 	/**
@@ -256,8 +269,10 @@ public class Boundary {
 	 *            another point to define the rectangle
 	 */
 	public void setRect(Point2D.Float pt1, Point2D.Float pt2) {
-		Point2D.Float s = new Point2D.Float(Math.min(pt1.x, pt2.x), Math.min(pt1.y, pt2.y));
-		Point2D.Float e = new Point2D.Float(Math.max(pt1.x, pt2.x), Math.max(pt1.y, pt2.y));
+		Point2D.Float s = new Point2D.Float(Math.min(pt1.x, pt2.x), Math.min(
+				pt1.y, pt2.y));
+		Point2D.Float e = new Point2D.Float(Math.max(pt1.x, pt2.x), Math.max(
+				pt1.y, pt2.y));
 		System.out.println(pt1 + " " + pt2);
 		this.shape.setFrameFromDiagonal(e, s);
 	}
@@ -273,7 +288,8 @@ public class Boundary {
 	 * @return the first Boundary that contains the point (or null if none
 	 *         exist)
 	 */
-	static public Boundary getBoundaryAtPoint(Point2D.Float pt, ArrayList<Boundary> list) {
+	static public Boundary getBoundaryAtPoint(Point2D.Float pt,
+			ArrayList<Boundary> list) {
 		for (Boundary b : list) {
 			if (b.contains(pt))
 				return b;
@@ -292,8 +308,8 @@ public class Boundary {
 	 */
 	public void translate(Point2D.Float dist) {
 		// translate the distance
-		this.shape.setFrame(this.shape.getX() + dist.x, this.shape.getY() + dist.y, this.shape.getWidth(),
-				this.shape.getHeight());
+		this.shape.setFrame(this.shape.getX() + dist.x, this.shape.getY()
+				+ dist.y, this.shape.getWidth(), this.shape.getHeight());
 
 	}
 
@@ -316,7 +332,8 @@ public class Boundary {
 	 *         right, lower left, lower right
 	 */
 	public Point2D.Float[] getCorners() {
-		return new Point2D.Float[] { getStart(), upperRight(), getEnd(), lowerLeft() };
+		return new Point2D.Float[] { getStart(), upperRight(), getEnd(),
+				lowerLeft() };
 	}
 
 	/** remove the first boundary at the given point */
@@ -349,7 +366,22 @@ public class Boundary {
 		return null;
 	}
 
+	/**
+	 * Set the given feature and shift from Rectangle to Ellipse or vice versa
+	 * 
+	 * @param f
+	 *            the feature to shift the Boundary to
+	 */
 	public void setFeature(Feature f) {
 		this.rectangle = f;
+		if (this.rectangle.isRectangle()) {
+			this.shape = new Rectangle2D.Double(this.shape.getX(),
+					this.shape.getY(), this.shape.getWidth(),
+					this.shape.getHeight());
+		} else {
+			this.shape = new Ellipse2D.Double(this.shape.getX(),
+					this.shape.getY(), this.shape.getWidth(),
+					this.shape.getHeight());
+		}
 	}
 }

@@ -8,23 +8,24 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import lattice.Lattice;
 import Fluids.Liquid;
 import Fluids.Water;
-import lattice.Cell;
-import lattice.Cell.ColorStats;
-import lattice.Lattice;
-import lattice.Q;
 
 /**
  * Opens the application and defines the main window.
@@ -34,8 +35,8 @@ import lattice.Q;
  */
 @SuppressWarnings("serial")
 public class LBMGui extends JFrame {
-	int XX = 250;
-	int YY = 250;
+	int XX = 500;
+	int YY = 500;
 
 	/** panel the user sets up the simulation chamber with */
 	private EditLattice drawingLattice;
@@ -54,7 +55,12 @@ public class LBMGui extends JFrame {
 
 	private float factor = 1f;
 
-	private Cell.ColorStats state = Cell.ColorStats.rho;
+	private double xV = 0.05f;
+	private double yV = 0f;
+
+	private Lattice.ColorStats state = Lattice.ColorStats.rho;
+
+	private boolean empty = false;
 
 	/**
 	 * Prepare the main display
@@ -90,14 +96,26 @@ public class LBMGui extends JFrame {
 		c.gridy = 1;
 		realcontent.add(this.drawingLattice, c);
 
-		JButton run = new JButton("run");
+		JButton run = new JButton("start");
+		JButton pausePlay = new JButton("pause");
+		JFormattedTextField xVelocitySetter = new JFormattedTextField(
+				new DecimalFormat("#.##"));
+		JFormattedTextField yVelocitySetter = new JFormattedTextField(
+				new DecimalFormat("#.##"));
+		xVelocitySetter.setValue(this.xV);
+		yVelocitySetter.setValue(this.yV);
+
+		control.add(run);
+		control.add(pausePlay);
+
 		run.addMouseListener(new MouseAdapter() {
 
 			@Override
 			public void mousePressed(MouseEvent e) {
 				JButton src = (JButton) e.getComponent();
-				if (src.getText().equals("run")) {
-					src.setText("pause");
+				if (src.getText().equals("start")) {
+					src.setText("stop");
+					pausePlay.setEnabled(true);
 					LBMGui.this.prepping = false;
 					realcontent.remove(LBMGui.this.drawingLattice);
 					c.gridx = 0;
@@ -105,20 +123,25 @@ public class LBMGui extends JFrame {
 					List<Boundary> list = LBMGui.this.drawingLattice.boundaries;
 
 					LBMGui.this.l = new Lattice(LBMGui.this.XX, LBMGui.this.YY,
-							Q.nine, LBMGui.this.medium,
-							new double[] { 0.1f, 0 }, list);
+							 LBMGui.this.medium, new double[] {
+									LBMGui.this.xV, LBMGui.this.yV }, list,
+							LBMGui.this.empty);
 
 					LBMGui.this.runningLattice = new LatticePanel(
-							LBMGui.this.l, 1, factor, state);
+							LBMGui.this.l, 1, LBMGui.this.factor,
+							LBMGui.this.state);
 					realcontent.add(LBMGui.this.runningLattice, c);
-					LBMGui.this.l.tm.setDelay(10);
+					LBMGui.this.l.tm.setDelay(5);
 					LBMGui.this.l.tm.setInitialDelay(0);
 					LBMGui.this.l.tm.start();
 
 					pack();
 				} else {
+					pausePlay.setEnabled(false);
+					pausePlay.setText("Pause");
+
 					LBMGui.this.l.tm.stop();
-					src.setText("run");
+					src.setText("start");
 					c.gridx = 0;
 					c.gridy = 1;
 					realcontent.remove(LBMGui.this.runningLattice);
@@ -131,17 +154,33 @@ public class LBMGui extends JFrame {
 			}
 		});
 
-		control.add(run);
-		JComboBox<Cell.ColorStats> displays = new JComboBox<>(
-				Cell.ColorStats.values());
+		pausePlay.addMouseListener(new MouseAdapter() {
+
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (pausePlay.getText().equals("Pause")) {
+					LBMGui.this.l.tm.stop();
+					pausePlay.setText("Play");
+				} else {
+					LBMGui.this.l.tm.start();
+					pausePlay.setText("Pause");
+				}
+
+			}
+		});
+
+		JComboBox<Lattice.ColorStats> displays = new JComboBox<>(
+				Lattice.ColorStats.values());
 		displays.addActionListener(new ActionListener() {
 
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				JComboBox cb = (JComboBox) arg0.getSource();
-				LBMGui.this.state = (ColorStats) cb.getSelectedItem();
-				if (LBMGui.this.runningLattice != null)
+				LBMGui.this.state = (lattice.Lattice.ColorStats) cb.getSelectedItem();
+				if (LBMGui.this.runningLattice != null) {
 					LBMGui.this.runningLattice.setColor(cb.getSelectedItem());
+					LBMGui.this.repaint();
+				}
 			}
 		});
 
@@ -173,6 +212,7 @@ public class LBMGui extends JFrame {
 				if (LBMGui.this.runningLattice != null)
 					LBMGui.this.runningLattice.factor = (Float) cb
 							.getSelectedItem();
+				LBMGui.this.repaint();
 			}
 		});
 
@@ -198,6 +238,57 @@ public class LBMGui extends JFrame {
 		});
 
 		control.add(temperature);
+		control.add(xVelocitySetter);
+		control.add(yVelocitySetter);
+		xVelocitySetter.addPropertyChangeListener(new PropertyChangeListener() {
+
+			@Override
+			public void propertyChange(PropertyChangeEvent arg0) {
+				if (arg0.getSource() == xVelocitySetter)
+					if (xVelocitySetter.getValue() instanceof Long)
+						LBMGui.this.xV = ((Long) xVelocitySetter.getValue())
+								.doubleValue();
+					else
+						LBMGui.this.xV = (Double) xVelocitySetter.getValue();
+				if (LBMGui.this.l != null)
+					LBMGui.this.l.setFlow(LBMGui.this.xV, LBMGui.this.yV);
+
+			}
+		});
+		yVelocitySetter.addPropertyChangeListener(new PropertyChangeListener() {
+
+			@Override
+			public void propertyChange(PropertyChangeEvent arg0) {
+				if (arg0.getSource() == yVelocitySetter)
+					if (yVelocitySetter.getValue() instanceof Long)
+						LBMGui.this.yV = ((Long) yVelocitySetter.getValue())
+								.doubleValue();
+					else
+						LBMGui.this.yV = (Double) yVelocitySetter.getValue();
+				if (LBMGui.this.l != null)
+					LBMGui.this.l.setFlow(LBMGui.this.xV, LBMGui.this.yV);
+			}
+		});
+		xVelocitySetter.setColumns(5);
+		yVelocitySetter.setColumns(5);
+
+		JButton fillTheLattice = new JButton("Filled");
+		fillTheLattice.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent arg0) {
+				if (fillTheLattice.getText().equals("Filled")) {
+					fillTheLattice.setText("Filling");
+					LBMGui.this.empty = true;
+				} else {
+					fillTheLattice.setText("Filled");
+					LBMGui.this.empty = false;
+				}
+				pack();
+			}
+
+		});
+		control.add(fillTheLattice);
+
 		this.pack();
 	}
 }

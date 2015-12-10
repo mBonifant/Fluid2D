@@ -2,20 +2,18 @@ package gui;
 
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Point;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionAdapter;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.util.List;
+import java.text.DecimalFormat;
 
 import javax.swing.JPanel;
 
-import lattice.Cell;
 import lattice.Lattice;
-import boundary.conditions.Sink;
-import boundary.conditions.Source;
-import boundary.conditions.Wall;
 
 /**
  * @author bonifantmc
@@ -31,7 +29,8 @@ public class LatticePanel extends JPanel implements RefreshListener {
 	private BufferedImage bf;
 	private Graphics bfg;
 	public float factor = 1;
-	private Cell.ColorStats color;
+	private Lattice.ColorStats color;
+	static private DecimalFormat df = new DecimalFormat("#.###");
 
 	/**
 	 * 
@@ -45,17 +44,17 @@ public class LatticePanel extends JPanel implements RefreshListener {
 	 * @param c
 	 *            which macro/microscopic value to view
 	 */
-	public LatticePanel(Lattice l, int dens, float factor, Cell.ColorStats c) {
+	public LatticePanel(Lattice l, int dens, float factor, Lattice.ColorStats c) {
 		this.color = c;
 		this.factor = factor;
 		this.l = l;
 		this.density = dens;
-		this.setPreferredSize(new Dimension(l.width * this.density, l.length
+		this.setPreferredSize(new Dimension(l.xdim * this.density, l.ydim
 				* this.density));
 		this.setMinimumSize(getPreferredSize());
 		this.setMaximumSize(getPreferredSize());
 		this.setSize(getPreferredSize());
-		this.bf = new BufferedImage(l.width * this.density, l.length
+		this.bf = new BufferedImage(l.xdim * this.density, l.ydim
 				* this.density, BufferedImage.TYPE_INT_RGB);
 		this.bfg = this.bf.getGraphics();
 		l.addRefreshListener(this);
@@ -63,9 +62,33 @@ public class LatticePanel extends JPanel implements RefreshListener {
 			@Override
 			public void mouseMoved(MouseEvent arg0) {
 				Point p = arg0.getPoint();
-				setToolTipText(l.lattice[p.x / LatticePanel.this.density][p.y
-						/ LatticePanel.this.density].toString());
+				setToolTipText("Rho = "
+						+ l.density[p.x / LatticePanel.this.density][p.y
+								/ LatticePanel.this.density]
+						+ "u = ("
+						+ l.xvel[p.x / LatticePanel.this.density][p.y
+								/ LatticePanel.this.density]
+						+ ", "
+						+ l.yvel[p.x / LatticePanel.this.density][p.y
+								/ LatticePanel.this.density] + ")");
+			}
 
+			@Override
+			public void mouseDragged(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				l.addRectangularWall(new Rectangle2D.Float(arg0.getPoint().x,
+						arg0.getPoint().y, 5, 5));
+				repaint();
+			}
+		});
+
+		this.addMouseListener(new MouseAdapter() {
+
+			@Override
+			public void mouseClicked(MouseEvent arg0) {
+				l.addRectangularWall(new Rectangle2D.Float(arg0.getPoint().x,
+						arg0.getPoint().y, 5, 5));
+				repaint();
 			}
 		});
 	}
@@ -77,17 +100,16 @@ public class LatticePanel extends JPanel implements RefreshListener {
 	 */
 	@Override
 	public void paintComponent(Graphics g) {
-		Cell c;
 		super.paintComponent(g);
-		g.clearRect(0, 0, this.l.width * this.density, this.l.length
+		g.clearRect(0, 0, this.l.xdim * this.density, this.l.ydim
 				* this.density);
-		this.bfg.clearRect(0, 0, this.l.width * this.density, this.l.length
+		this.bfg.clearRect(0, 0, this.l.xdim * this.density, this.l.ydim
 				* this.density);
 
-		for (int i = 0; i < this.l.width; i++)
-			for (int j = 0; j < this.l.length; j++) {
-				c = this.l.lattice[i][j];
-				this.bfg.setColor(c.getColor(this.color, factor));
+		for (int i = 0; i < this.l.xdim; i++)
+			for (int j = 0; j < this.l.ydim; j++) {
+				this.bfg.setColor(this.l
+						.getColor(this.color, this.factor, i, j));
 				this.bfg.fillRect(i * this.density, j * this.density,
 						this.density, this.density);
 			}
@@ -115,8 +137,8 @@ public class LatticePanel extends JPanel implements RefreshListener {
 	 *            the coloring state to switch to
 	 */
 	public void setColor(Object color) {
-		if (color instanceof Cell.ColorStats) {
-			this.color = (Cell.ColorStats) color;
+		if (color instanceof Lattice.ColorStats) {
+			this.color = (Lattice.ColorStats) color;
 			System.out.println("new color: " + color);
 		}
 	}
