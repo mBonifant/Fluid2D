@@ -147,7 +147,7 @@ public class DrawingTool extends MouseAdapter implements KeyListener {
 	 */
 	@Override
 	public void mouseDragged(MouseEvent e) {
-System.out.println("DRAGGING");		// do nothing for right drags
+		System.out.println("DRAGGING"); // do nothing for right drags
 		if (SwingUtilities.isRightMouseButton(e))
 			return;
 
@@ -482,14 +482,14 @@ System.out.println("DRAGGING");		// do nothing for right drags
 
 			// build items
 			for (Feature val : values)
-				items.add(new JRadioButtonMenuItem(val.toString()));
+				items.add(new JRadioButtonMenuItem(val.msg));
 
 			// create a listener for the items
 			ActionListener listener = new ActionListener() {
 
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
-
+					System.out.println("Function");
 					if (items.contains(arg0.getSource())) {
 						String text = ((JMenuItem) arg0.getSource()).getText();
 

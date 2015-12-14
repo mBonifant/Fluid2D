@@ -49,35 +49,29 @@ public class LatticePanel extends JPanel implements RefreshListener {
 		this.factor = factor;
 		this.l = l;
 		this.density = dens;
-		this.setPreferredSize(new Dimension(l.xdim * this.density, l.ydim
-				* this.density));
+		this.setPreferredSize(new Dimension(l.xdim * this.density, l.ydim * this.density));
 		this.setMinimumSize(getPreferredSize());
 		this.setMaximumSize(getPreferredSize());
 		this.setSize(getPreferredSize());
-		this.bf = new BufferedImage(l.xdim * this.density, l.ydim
-				* this.density, BufferedImage.TYPE_INT_RGB);
+		this.bf = new BufferedImage(l.xdim * this.density, l.ydim * this.density, BufferedImage.TYPE_INT_RGB);
 		this.bfg = this.bf.getGraphics();
 		l.addRefreshListener(this);
 		this.addMouseMotionListener(new MouseMotionAdapter() {
 			@Override
 			public void mouseMoved(MouseEvent arg0) {
-				Point p = arg0.getPoint();
-				setToolTipText("Rho = "
-						+ l.density[p.x / LatticePanel.this.density][p.y
-								/ LatticePanel.this.density]
-						+ "u = ("
-						+ l.xvel[p.x / LatticePanel.this.density][p.y
-								/ LatticePanel.this.density]
-						+ ", "
-						+ l.yvel[p.x / LatticePanel.this.density][p.y
-								/ LatticePanel.this.density] + ")");
+				if (LatticePanel.this.contains(arg0.getPoint())) {
+					Point p = arg0.getPoint();
+					setToolTipText("Rho = "
+							+ l.density[p.x / LatticePanel.this.density][p.y / LatticePanel.this.density] + "u = ("
+							+ l.xvel[p.x / LatticePanel.this.density][p.y / LatticePanel.this.density] + ", "
+							+ l.yvel[p.x / LatticePanel.this.density][p.y / LatticePanel.this.density] + ")");
+				}
 			}
 
 			@Override
 			public void mouseDragged(MouseEvent arg0) {
 				// TODO Auto-generated method stub
-				l.addRectangularWall(new Rectangle2D.Float(arg0.getPoint().x,
-						arg0.getPoint().y, 5, 5));
+				l.addRectangularWall(new Rectangle2D.Float(arg0.getPoint().x, arg0.getPoint().y, 5, 5));
 				repaint();
 			}
 		});
@@ -86,8 +80,7 @@ public class LatticePanel extends JPanel implements RefreshListener {
 
 			@Override
 			public void mouseClicked(MouseEvent arg0) {
-				l.addRectangularWall(new Rectangle2D.Float(arg0.getPoint().x,
-						arg0.getPoint().y, 5, 5));
+				l.addRectangularWall(new Rectangle2D.Float(arg0.getPoint().x, arg0.getPoint().y, 5, 5));
 				repaint();
 			}
 		});
@@ -101,17 +94,13 @@ public class LatticePanel extends JPanel implements RefreshListener {
 	@Override
 	public void paintComponent(Graphics g) {
 		super.paintComponent(g);
-		g.clearRect(0, 0, this.l.xdim * this.density, this.l.ydim
-				* this.density);
-		this.bfg.clearRect(0, 0, this.l.xdim * this.density, this.l.ydim
-				* this.density);
+		g.clearRect(0, 0, this.getL().xdim * this.density, this.getL().ydim * this.density);
+		this.bfg.clearRect(0, 0, this.getL().xdim * this.density, this.getL().ydim * this.density);
 
-		for (int i = 0; i < this.l.xdim; i++)
-			for (int j = 0; j < this.l.ydim; j++) {
-				this.bfg.setColor(this.l
-						.getColor(this.color, this.factor, i, j));
-				this.bfg.fillRect(i * this.density, j * this.density,
-						this.density, this.density);
+		for (int i = 0; i < this.getL().xdim; i++)
+			for (int j = 0; j < this.getL().ydim; j++) {
+				this.bfg.setColor(this.getL().getColor(this.color, this.factor, i, j));
+				this.bfg.fillRect(i * this.density, j * this.density, this.density, this.density);
 			}
 
 		// Boundary.paintBoundarys((Graphics2D) this.bfg, this.bounds, 0, 0);
@@ -141,5 +130,9 @@ public class LatticePanel extends JPanel implements RefreshListener {
 			this.color = (Lattice.ColorStats) color;
 			System.out.println("new color: " + color);
 		}
+	}
+
+	public Lattice getL() {
+		return l;
 	}
 }

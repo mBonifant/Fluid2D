@@ -26,11 +26,11 @@ import Fluids.Liquid;
 public class Lattice {
 
 	/** 4/9 */
-	double four9ths = 4.0 / 9.0;
+	float four9ths = 4.0f / 9.0f;
 	/** 1/9 */
-	double one9th = 1.0 / 9.0;
+	float one9th = 1.0f / 9.0f;
 	/** 1/36 */
-	double one36th = 1.0 / 36.0;
+	float one36th = 1.0f / 36.0f;
 
 	// main lattice structure
 	/** width of the chamber */
@@ -38,35 +38,35 @@ public class Lattice {
 	/** length of the chamber */
 	public int ydim = 80;
 	/** micro density of fluid not moving */
-	double[][] n0;
+	float[][] n0;
 	/** micro density flowing north */
-	double[][] nN;
+	float[][] nN;
 	/** micro density flowing south */
-	double[][] nS;
+	float[][] nS;
 	/** micro density flowing east */
-	double[][] nE;
+	float[][] nE;
 	/** micro density flowing west */
-	double[][] nW;
+	float[][] nW;
 	/** micro density flowing north west */
-	double[][] nNW;
+	float[][] nNW;
 	/** micro density flowing north east */
-	double[][] nNE;
+	float[][] nNE;
 	/** micro density flowing south west */
-	double[][] nSW;
+	float[][] nSW;
 	/** micro density flowing south east */
-	double[][] nSE;
+	float[][] nSE;
 
 	// Other arrays calculated from the above:
 	/** macro density */
-	public double[][] density;
+	public float[][] density;
 	/** x velocity */
-	public double[][] xvel;
+	public float[][] xvel;
 	/** y velocity */
-	public double[][] yvel;
+	public float[][] yvel;
 	/** speed squared */
-	double[][] speed2;;
+	float[][] speed2;;
 	/** curl of the fluid */
-	double[][] curl;
+	float[][] curl;
 
 	// boundaries
 	/** walls for bounce back */
@@ -77,9 +77,9 @@ public class Lattice {
 	boolean[][] sink;
 
 	/** default velocity of in flowing fluid */
-	private double[] defU;
+	private float[] defU;
 	/** speedSq of the default velocity */
-	private double defUNorm;
+	private float defUNorm;
 
 	/**
 	 * listeners checking if they should refresh their display of the lattice
@@ -120,27 +120,27 @@ public class Lattice {
 	 * @param empty
 	 *            true if the lattice is being filled, otherwise false
 	 */
-	public Lattice(int w, int l, Liquid liq, double[] u, List<Boundary> list, boolean empty) {
+	public Lattice(int w, int l, Liquid liq, float[] u, List<Boundary> list, boolean empty) {
 		this.ydim = l;
 		this.xdim = w;
 		this.l = liq;
-		this.n0 = new double[this.xdim][this.ydim];
-		this.nN = new double[this.xdim][this.ydim];
-		this.nS = new double[this.xdim][this.ydim];
-		this.nE = new double[this.xdim][this.ydim];
-		this.nW = new double[this.xdim][this.ydim];
-		this.nNW = new double[this.xdim][this.ydim];
-		this.nNE = new double[this.xdim][this.ydim];
-		this.nSW = new double[this.xdim][this.ydim];
-		this.nSE = new double[this.xdim][this.ydim];
+		this.n0 = new float[this.xdim][this.ydim];
+		this.nN = new float[this.xdim][this.ydim];
+		this.nS = new float[this.xdim][this.ydim];
+		this.nE = new float[this.xdim][this.ydim];
+		this.nW = new float[this.xdim][this.ydim];
+		this.nNW = new float[this.xdim][this.ydim];
+		this.nNE = new float[this.xdim][this.ydim];
+		this.nSW = new float[this.xdim][this.ydim];
+		this.nSE = new float[this.xdim][this.ydim];
 
 		// Other arrays calculated from the above:
-		this.density = new double[this.xdim][this.ydim]; // total density
-		this.xvel = new double[this.xdim][this.ydim]; // macroscopic x velocity
-		this.yvel = new double[this.xdim][this.ydim]; // macroscopic y velocity
-		this.speed2 = new double[this.xdim][this.ydim];// macroscopic speed
+		this.density = new float[this.xdim][this.ydim]; // total density
+		this.xvel = new float[this.xdim][this.ydim]; // macroscopic x velocity
+		this.yvel = new float[this.xdim][this.ydim]; // macroscopic y velocity
+		this.speed2 = new float[this.xdim][this.ydim];// macroscopic speed
 														// squared
-		this.curl = new double[this.xdim][this.ydim];
+		this.curl = new float[this.xdim][this.ydim];
 
 		// Boolean array, true at sites that contain barriers:
 		this.barrier = new boolean[this.xdim][this.ydim];
@@ -292,35 +292,35 @@ public class Lattice {
 			for (int y = 0; y < this.ydim; y++) {
 				if (this.barrier[x][y]) {
 					if (this.nN[x][y] > 0 && y - 1 >= 0) {
-						this.nS[x][y - 1] += this.nN[x][y];
+						this.nS[x][y - 1] = this.nN[x][y];
 						this.nN[x][y] = 0;
 					}
 					if (this.nS[x][y] > 0 && y + 1 < this.ydim) {
-						this.nN[x][y + 1] += this.nS[x][y];
+						this.nN[x][y + 1]= this.nS[x][y];
 						this.nS[x][y] = 0;
 					}
 					if (this.nE[x][y] > 0 && x - 1 >= 0) {
-						this.nW[x - 1][y] += this.nE[x][y];
+						this.nW[x - 1][y] = this.nE[x][y];
 						this.nE[x][y] = 0;
 					}
 					if (this.nW[x][y] > 0 && x + 1 < this.xdim) {
-						this.nE[x + 1][y] += this.nW[x][y];
+						this.nE[x + 1][y] = this.nW[x][y];
 						this.nW[x][y] = 0;
 					}
 					if (this.nNW[x][y] > 0 && x + 1 < this.xdim && y - 1 >= 0) {
-						this.nSE[x + 1][y - 1] += this.nNW[x][y];
+						this.nSE[x + 1][y - 1] = this.nNW[x][y];
 						this.nNW[x][y] = 0;
 					}
 					if (this.nNE[x][y] > 0 && x - 1 >= 0 && y - 1 >= 0) {
-						this.nSW[x - 1][y - 1] += this.nNE[x][y];
+						this.nSW[x - 1][y - 1] = this.nNE[x][y];
 						this.nNE[x][y] = 0;
 					}
 					if (this.nSW[x][y] > 0 && x + 1 < this.xdim && y + 1 < this.ydim) {
-						this.nNE[x + 1][y + 1] += this.nSW[x][y];
+						this.nNE[x + 1][y + 1] = this.nSW[x][y];
 						this.nSW[x][y] = 0;
 					}
 					if (this.nSE[x][y] > 0 && x - 1 >= 0 && y + 1 < this.ydim) {
-						this.nNW[x - 1][y + 1] += this.nSE[x][y];
+						this.nNW[x - 1][y + 1] = this.nSE[x][y];
 						this.nSE[x][y] = 0;
 					}
 				}
@@ -332,42 +332,56 @@ public class Lattice {
 	private void stream() {
 		for (int x = 0; x < this.xdim - 1; x++) { // first start in NW corner...
 			for (int y = this.ydim - 1; y > 0; y--) {
-				this.nN[x][y] = this.nN[x][y - 1]; // move the north-moving
-													// particles
-				this.nNW[x][y] = this.nNW[x + 1][y - 1]; // and the
-															// northwest-moving
+				if (!(barrier[x][y] && barrier[x][y - 1]))
+					this.nN[x][y] = this.nN[x][y - 1]; // move the north-moving
+														// particles
+				if (!(barrier[x][y] && barrier[x + 1][y - 1]))
+
+					this.nNW[x][y] = this.nNW[x + 1][y - 1]; // and the
+																// northwest-moving
 				// particles
 			}
 		}
 		for (int x = this.xdim - 1; x > 0; x--) { // now start in NE corner...
 			for (int y = this.ydim - 1; y > 0; y--) {
-				this.nE[x][y] = this.nE[x - 1][y]; // move the east-moving
-													// particles
-				this.nNE[x][y] = this.nNE[x - 1][y - 1]; // and the
-															// northeast-moving
+				if (!(barrier[x][y] && barrier[x - 1][y]))
+
+					this.nE[x][y] = this.nE[x - 1][y]; // move the east-moving
+				if (!(barrier[x][y] && barrier[x - 1][y - 1]))
+					// particles
+					this.nNE[x][y] = this.nNE[x - 1][y - 1]; // and the
+																// northeast-moving
 				// particles
 			}
 		}
 		for (int x = this.xdim - 1; x > 0; x--) { // now start in SE corner...
 			for (int y = 0; y < this.ydim - 1; y++) {
-				this.nS[x][y] = this.nS[x][y + 1]; // move the south-moving
-													// particles
-				this.nSE[x][y] = this.nSE[x - 1][y + 1]; // and the
-															// southeast-moving
+				if (!(barrier[x][y] && barrier[x][y + 1]))
+
+					this.nS[x][y] = this.nS[x][y + 1]; // move the south-moving
+														// particles
+				if (!(barrier[x][y] && barrier[x - 1][y + 1]))
+
+					this.nSE[x][y] = this.nSE[x - 1][y + 1]; // and the
+																// southeast-moving
 				// particles
 			}
 		}
 		for (int x = 0; x < this.xdim - 1; x++) { // now start in the SW
 													// corner...
 			for (int y = 0; y < this.ydim - 1; y++) {
-				this.nW[x][y] = this.nW[x + 1][y]; // move the west-moving
-													// particles
-				this.nSW[x][y] = this.nSW[x + 1][y + 1]; // and the
-															// southwest-moving
+				if (!(barrier[x][y] && barrier[x + 1][y]))
+
+					this.nW[x][y] = this.nW[x + 1][y]; // move the west-moving
+														// particles
+				if (!(barrier[x][y] && barrier[x + 1][y + 1]))
+
+					this.nSW[x][y] = this.nSW[x + 1][y + 1]; // and the
+																// southwest-moving
 				// particles
 			}
 		}
-		double v = Math.sqrt(getUNorm());
+		float v = (float) Math.sqrt(getUNorm());
 
 		// We missed a few at the left and right edges:
 		for (int y = 0; y < this.ydim - 1; y++) {
@@ -398,48 +412,67 @@ public class Lattice {
 
 		// Now handle top and bottom edges:
 		for (int x = 0; x < this.xdim; x++) {
-			this.n0[x][0] = this.four9ths * (1 - 1.5 * v * v);
+			this.n0[x][0] = this.four9ths * (1 - 1.5f * v * v);
 			this.nE[x][0] = this.one9th * (1 + 3 * v + 3 * v * v);
 			this.nW[x][0] = this.one9th * (1 - 3 * v + 3 * v * v);
-			this.nN[x][0] = this.one9th * (1 - 1.5 * v * v);
-			this.nS[x][0] = this.one9th * (1 - 1.5 * v * v);
+			this.nN[x][0] = this.one9th * (1 - 1.5f * v * v);
+			this.nS[x][0] = this.one9th * (1 - 1.5f * v * v);
 			this.nNE[x][0] = this.one36th * (1 + 3 * v + 3 * v * v);
 			this.nSE[x][0] = this.one36th * (1 + 3 * v + 3 * v * v);
 			this.nNW[x][0] = this.one36th * (1 - 3 * v + 3 * v * v);
 			this.nSW[x][0] = this.one36th * (1 - 3 * v + 3 * v * v);
-			this.n0[x][this.ydim - 1] = this.four9ths * (1 - 1.5 * v * v);
+			this.n0[x][this.ydim - 1] = this.four9ths * (1 - 1.5f * v * v);
 			this.nE[x][this.ydim - 1] = this.one9th * (1 + 3 * v + 3 * v * v);
 			this.nW[x][this.ydim - 1] = this.one9th * (1 - 3 * v + 3 * v * v);
-			this.nN[x][this.ydim - 1] = this.one9th * (1 - 1.5 * v * v);
-			this.nS[x][this.ydim - 1] = this.one9th * (1 - 1.5 * v * v);
+			this.nN[x][this.ydim - 1] = this.one9th * (1 - 1.5f * v * v);
+			this.nS[x][this.ydim - 1] = this.one9th * (1 - 1.5f * v * v);
 			this.nNE[x][this.ydim - 1] = this.one36th * (1 + 3 * v + 3 * v * v);
 			this.nSE[x][this.ydim - 1] = this.one36th * (1 + 3 * v + 3 * v * v);
 			this.nNW[x][this.ydim - 1] = this.one36th * (1 - 3 * v + 3 * v * v);
 			this.nSW[x][this.ydim - 1] = this.one36th * (1 - 3 * v + 3 * v * v);
 		}
+
+		for (int x = 0; x < this.xdim; x++)
+			for (int y = 0; y < ydim; y++) {
+
+				this.n0[x][y] *= n0[x][y] <= 0 ? 0 : 1;
+				this.nE[x][y] *= nE[x][y] <= 0 ? 0 : 1;
+				this.nW[x][y] *= nW[x][y] <= 0 ? 0 : 1;
+				this.nS[x][y] *= nS[x][y] <= 0 ? 0 : 1;
+				this.nN[x][y] *= nN[x][y] <= 0 ? 0 : 1;
+				this.nNE[x][y] *= nNE[x][y] <= 0 ? 0 : 1;
+				this.nNW[x][y] *= nNW[x][y] <= 0 ? 0 : 1;
+				this.nSE[x][y] *= nSE[x][y] <= 0 ? 0 : 1;
+				this.nSW[x][y] *= nSW[x][y] <= 0 ? 0 : 1;
+
+			}
 	}
 
 	/** compute collision of fluids */
 	private void collide() {
-		double n, one9thn, one36thn, vx, vy, vx2, vy2, vx3, vy3, vxvy2, v2, v215;
-		double omega = this.l.getOmega();
+		float n, one9thn, one36thn, vx, vy, vx2, vy2, vx3, vy3, vxvy2, v2, v215;
+		float omega = (float) this.l.getOmega();
+		float sinsor = 0.02f;
 		for (int x = 0; x < this.xdim; x++) {
 			for (int y = 0; y < this.ydim; y++) {
 				if (!this.barrier[x][y]) {
-					// RHO
-					this.n0[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*four9ths;
-					this.nN[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one9th;
-					this.nS[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one9th;
-					this.nE[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one9th;
-					this.nW[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one9th;
-					this.nNW[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one36th;
-					this.nNE[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one36th;
-					this.nSW[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one36th;
-					this.nSE[x][y] += ((this.sink[x][y] ? -0.01 : 0) + (this.source[x][y] ? 0.01 : 0))*one36th;
 
+					// RHO
+					this.n0[x][y] += ((this.sink[x][y] ? -sinsor : 0) + (this.source[x][y] ? sinsor : 0)) * four9ths;
+					this.nN[x][y] += ((this.sink[x][y] ? -sinsor : 0) + (this.source[x][y] ? sinsor : 0)) * one9th;
+					this.nS[x][y] += ((this.sink[x][y] ? -sinsor : 0) + (this.source[x][y] ? sinsor : 0)) * one9th;
+					this.nE[x][y] += ((this.sink[x][y] ? -sinsor : 0) + (this.source[x][y] ? sinsor : 0)) * one9th;
+					this.nW[x][y] += ((this.sink[x][y] ? -sinsor : 0) + (this.source[x][y] ? sinsor : 0)) * one9th;
+					this.nNW[x][y] += ((this.sink[x][y] ? -sinsor : 0) + (this.source[x][y] ? sinsor : 0)) * one36th;
+					this.nNE[x][y] += ((this.sink[x][y] ? -sinsor : 0) + (this.source[x][y] ? sinsor : 0)) * one36th;
+					this.nSW[x][y] += ((this.sink[x][y] ? -sinsor : 0) + (this.source[x][y] ? sinsor : 0)) * one36th;
+					this.nSE[x][y] += ((this.sink[x][y] ? -sinsor : 0) + (this.source[x][y] ? sinsor : 0)) * one36th;
+
+					
 					n = this.n0[x][y] + this.nN[x][y] + this.nS[x][y] + this.nE[x][y] + this.nW[x][y] + this.nNW[x][y]
 							+ this.nNE[x][y] + this.nSW[x][y] + this.nSE[x][y];
-
+					if (n < 0 || Float.isInfinite(n)||Float.isNaN(n)|| n < 0.0000000000f)
+						n = 0;
 					this.density[x][y] = n; // macroscopic density may be needed
 											// for
 					// plotting
@@ -468,7 +501,7 @@ public class Lattice {
 					vxvy2 = 2 * vx * vy;
 					v2 = vx2 + vy2;
 					this.speed2[x][y] = v2; // may be needed for plotting
-					v215 = 1.5 * v2;
+					v215 = 1.5f * v2;
 					this.n0[x][y] += omega * (this.four9ths * n * (1 - v215) - this.n0[x][y]);
 					this.nE[x][y] += omega * (one9thn * (1 + vx3 + 4.5 * vx2 - v215) - this.nE[x][y]);
 					this.nW[x][y] += omega * (one9thn * (1 - vx3 + 4.5 * vx2 - v215) - this.nW[x][y]);
@@ -503,7 +536,7 @@ public class Lattice {
 	 *            true if everything should be set to 0 for an empty lattice
 	 */
 	private synchronized void initVelocity(boolean empty) {
-		double v = Math.sqrt(this.defUNorm);
+		float v = (float) Math.sqrt(this.defUNorm);
 		for (int x = 0; x < this.xdim; x++) {
 			for (int y = 0; y < this.ydim; y++) {
 				if (this.barrier[x][y] || empty) {
@@ -520,15 +553,15 @@ public class Lattice {
 					this.yvel[x][y] = 0;
 					this.speed2[x][y] = 0;
 				} else {
-					this.n0[x][y] = Velocity.frac4in9 * (1 - 1.5 * v * v);
-					this.nE[x][y] = Velocity.frac1in9 * (1 + 3 * v + 3 * v * v);
-					this.nW[x][y] = Velocity.frac1in9 * (1 - 3 * v + 3 * v * v);
-					this.nN[x][y] = Velocity.frac1in9 * (1 - 1.5 * v * v);
-					this.nS[x][y] = Velocity.frac1in9 * (1 - 1.5 * v * v);
-					this.nNE[x][y] = Velocity.frac1in36 * (1 + 3 * v + 3 * v * v);
-					this.nSE[x][y] = Velocity.frac1in36 * (1 + 3 * v + 3 * v * v);
-					this.nNW[x][y] = Velocity.frac1in36 * (1 - 3 * v + 3 * v * v);
-					this.nSW[x][y] = Velocity.frac1in36 * (1 - 3 * v + 3 * v * v);
+					this.n0[x][y] = four9ths* (1 - 1.5f * v * v);
+					this.nE[x][y] = one9th * (1 + 3 * v + 3 * v * v);
+					this.nW[x][y] = one9th * (1 - 3 * v + 3 * v * v);
+					this.nN[x][y] = one9th * (1 - 1.5f * v * v);
+					this.nS[x][y] = one9th * (1 - 1.5f * v * v);
+					this.nNE[x][y] = one36th * (1 + 3 * v + 3 * v * v);
+					this.nSE[x][y] = one36th * (1 + 3 * v + 3 * v * v);
+					this.nNW[x][y] = one36th* (1 - 3 * v + 3 * v * v);
+					this.nSW[x][y] = one36th * (1 - 3 * v + 3 * v * v);
 					this.density[x][y] = this.l.getDensity();
 					this.xvel[x][y] = this.defU[0];
 					this.yvel[x][y] = this.defU[1];
@@ -572,20 +605,20 @@ public class Lattice {
 	 * @param yV
 	 *            the y in flow
 	 */
-	public void setFlow(double xV, double yV) {
-		this.defU = new double[] { xV, yV };
+	public void setFlow(float xV, float yV) {
+		this.defU = new float[] { xV, yV };
 		this.defUNorm = this.defU[0] * this.defU[0] + this.defU[1] * this.defU[1];
 	}
 
 	/**
 	 * @return the default in flow
 	 */
-	public double[] getU() {
+	public float[] getU() {
 		return this.defU;
 	}
 
 	/** the speed squared of the default in flow */
-	public double getUNorm() {
+	public float getUNorm() {
 		return this.defUNorm;
 	}
 
@@ -617,7 +650,7 @@ public class Lattice {
 	public Color getColor(ColorStats cs, float factor, int i, int j) {
 		if (this.barrier[i][j])
 			return Color.BLACK;
-		double f = 0;
+		float f = 0;
 		switch (cs) {
 		case rho:
 			f = this.density[i][j];
@@ -667,5 +700,7 @@ public class Lattice {
 
 		return Color.getHSBColor((float) f * factor, 0.7f, 0.9f);
 	}
+	
+	
 
 }

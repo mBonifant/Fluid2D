@@ -7,24 +7,33 @@ import java.awt.Color;
  * @author bonifantmc
  * 
  */
+
+class messages {
+	final static String m1 = "Rectangular Sink", m2 = "Rectangular Source", m3 = "Rectangular Wall",
+			m4 = "Rectangular Fluid", m5 = "Elliptical Sink", m6 = "Elliptical Source", m7 = "Elliptical Wall",
+			m8 = "Elliptical Fluid";
+
+}
+
 public enum Feature {
 
 	/** Rectangular Sink */
-	SINK_RECT("ro", Color.BLUE), /** Rectangular Source */
-	SOURCE_RECT("ri", Color.RED), /** Rectangular Wall */
-	WALL_RECT("rw", Color.MAGENTA), /** Elliptical Sink */
-	SINK_ELLI("eo", Color.BLUE), /** Elliptical Source */
-	SOURCE_ELLI("ei", Color.RED), /** Elliptical Wall */
-	WALL_ELLI("ew", Color.MAGENTA), /** Rectangular Fluid */
-	FLUID_RECT("rf", Color.GREEN), /** Elliptical Fluid */
-	FLUID_ELLI("ef", Color.GREEN);
+	SINK_RECT("ro", Color.BLUE, messages.m1), /** Rectangular Source */
+	SOURCE_RECT("ri", Color.RED, messages.m2), /** Rectangular Wall */
+	WALL_RECT("rw", Color.MAGENTA, messages.m3), /** Rectangular Fluid */
+	FLUID_RECT("rf", Color.GREEN, messages.m4), /** Elliptical Sink */
+	SINK_ELLI("eo", Color.BLUE, messages.m5), /** Elliptical Source */
+	SOURCE_ELLI("ei", Color.RED, messages.m6), /** Elliptical Wall */
+	WALL_ELLI("ew", Color.MAGENTA, messages.m7), /** Elliptical Fluid */
+	FLUID_ELLI("ef", Color.GREEN, messages.m8);
 
 	/**
 	 * This is the character string that is printed when an annotation is
 	 * written to a .lst file
 	 */
 	private String s;
-
+	/** the string to display for buttons */
+	public String msg;
 	/** the color to draw the feature with */
 	private Color c;
 
@@ -33,12 +42,13 @@ public enum Feature {
 	 *            the character symbol that each Feature has.
 	 * @param color
 	 *            the color to draw the Feature as.
-	 * @param rect
-	 *            true rectangle false ellipse.
+	 * @param msg
+	 *            the message to display for buttons
 	 */
-	Feature(String sym, Color color) {
+	Feature(String sym, Color color, String msg) {
 		this.s = sym;
 		this.c = color;
+		this.msg = msg;
 	}
 
 	/**
@@ -77,25 +87,40 @@ public enum Feature {
 	/**
 	 * Parse abbreviation into enum
 	 */
-	public static Feature parseFeature(String string) {
 
-		switch (string.toLowerCase()) {
-		case "ri":
-			return SOURCE_RECT;
+	final static String m1 = "Rectangular Sink", m2 = "Rectangular Source", m3 = "Rectangular Wall",
+			m4 = "Rectangular Fluid", m5 = "Elliptical Sink", m6 = "Elliptical Source", m7 = "Elliptical Wall",
+			m8 = "Elliptical Fluid";
+
+	public static Feature parseFeature(String string) {
+		System.out.println(string);
+		switch (string) {
 		case "ro":
+		case messages.m1:
 			return SINK_RECT;
+		case "ri":
+		case messages.m2:
+			return SOURCE_RECT;
 		case "rw":
+		case messages.m3:
 			return WALL_RECT;
-		case "ei":
-			return SOURCE_ELLI;
+		case "rf":
+		case messages.m4:
+			return FLUID_RECT;
+
 		case "eo":
+		case messages.m5:
 			return SINK_ELLI;
+		case "ei":
+		case messages.m6:
+			return SOURCE_ELLI;
 		case "ew":
+		case messages.m7:
 			return WALL_ELLI;
 		case "ef":
+		case messages.m8:
 			return FLUID_ELLI;
-		case "rf":
-			return FLUID_RECT;
+
 		}
 		return WALL_RECT;
 	}

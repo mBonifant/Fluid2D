@@ -1,11 +1,11 @@
 package Fluids;
 
 public interface Liquid {
-	public double getViscosity();
+	public float getViscosity();
 
-	public double getDensity();
+	public float getDensity();
 
-	public double getOmega();
+	public float getOmega();
 
 	public int getTemperature();
 

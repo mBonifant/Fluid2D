@@ -8,27 +8,27 @@ package Fluids;
  */
 public class Water implements Liquid {
 	/** A Map of the kinematic viscosity of waters temperature increases */
-	public static double[] viscosityFromTemp = { 1.787, 1.519, 1.307, 1.004,
-			0.801, 0.658, 0.553, 0.475, 0.413, 0.365, 0.1 };
-	/** A Map of the density of water as temperature increases */
-	public static double[] densityFromTemp = {};
+	public static float[] viscosityFromTemp = { 1.7918065f, 1.3062651526112f,1.0034053420487f,
+			0.8008271785568f, 0.65809618509849f, 0.553468039063689f,
+			0.47436738184881f, 0.41307954234706f, 0.36463671901831f, 0.32570900878262f,0.29688726487272f};
+
 
 	/** water temperature */
 	private int temperature;
 	/** water density */
-	private double density;
+	private float density;
 	/** water viscosity (how well it flows) */
-	private double viscosity;
+	private float viscosity;
 	/** time constant related to viscosity by omega= 1/(3*viscoity+0.5) */
-	private double omega;
+	private float omega;
 
 	@Override
-	public double getViscosity() {
+	public float getViscosity() {
 		return this.viscosity;
 	}
 
 	@Override
-	public double getDensity() {
+	public float getDensity() {
 		return this.density;
 	}
 
@@ -44,7 +44,7 @@ public class Water implements Liquid {
 	}
 
 	@Override
-	public double getOmega() {
+	public float getOmega() {
 		return this.omega;
 	}
 
