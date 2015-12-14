@@ -35,6 +35,8 @@ public class Main {
 			public void run() {
 				try {
 					LBMGui gui = new LBMGui();
+					//gui.setSize(600, 600);
+					gui.setResizable(false);
 					gui.setVisible(true);
 
 				} catch (Exception e) {

@@ -38,7 +38,7 @@ public class LatticeTests {
 		Boundary b4 = new Boundary(Feature.WALL_RECT, 2, 2, 1, 1);
 
 		Lattice l = new Lattice(5, 5, new Water(0),
-				new double[] { 1, 0 }, new ArrayList<>(), false);
+				new float[] { 1, 0 }, new ArrayList<>(), false);
 
 		// l.addRectangularWall(rs1);
 		// l.addRectangularWall(rs2);
