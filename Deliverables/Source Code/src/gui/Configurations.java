@@ -1,0 +1,107 @@
+package gui;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Properties;
+
+/**
+ * Configurations provides static methods for obtaining and saving user
+ * preferences.
+ * 
+ * @author bonifantmc
+ * 
+ */
+public class Configurations {
+	/** default starting width of screen */
+	public static final int dw = 700;
+
+	/** default starting height of screen */
+	public static final int dh = 700;
+
+	/** default starting x coord of screen */
+	public static final int dx = 0;
+
+	/** default starting y coord of screen */
+	public static final int dy = 0;
+
+	/**
+	 * Loads the initial location and size of the LBMGui and sets them.
+	 * 
+	 * @param lbm
+	 *            gui being set
+	 * @param fileName
+	 *            name of the configuration file
+	 */
+	public static void getDisplayProperties(LBMGui gui, String fileName) {
+		Properties prop = new Properties();
+		File f = new File(fileName);
+		// defaults
+		int w = dw, h = dh, x = dx, y = dy;
+
+		if (f.exists()) {
+			try (FileInputStream input = new FileInputStream(f)) {
+				prop.load(input);
+				try {
+					w = Integer.parseInt(prop.getProperty("windowwidth", "700"));
+				} catch (NumberFormatException e) {
+					w = dw;
+				}
+
+				try {
+					h = Integer.parseInt(prop.getProperty("windowheight", "700"));
+				} catch (NumberFormatException e) {
+					h = dh;
+				}
+
+				try {
+					x = Float.valueOf((prop.getProperty("positionX", "0"))).intValue();
+				} catch (NumberFormatException e) {
+					x = dx;
+				}
+
+				try {
+					y = Float.valueOf((prop.getProperty("positionY", "0"))).intValue();
+
+				} catch (NumberFormatException e) {
+					y = dy;
+				}
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+
+		// check for negative values, someone could hardcode it into the file,
+		// and if a window is closed while minimized (at least in windows) the
+		// position is then given as a negative
+		if (w < 0)
+			w = dw;
+		if (h < 0)
+			h = dh;
+		if (x < 0)
+			x = dx;
+		if (y < 0)
+			y = dy;
+
+	}
+
+	/**
+	 * Store user configurations to a configuration file for use on next start
+	 * up of lbm
+	 * 
+	 * @param lbm
+	 *            the lbm to store information for
+	 * @param fileName
+	 *            the name of the config file to save to
+	 */
+	static void setProperties(LBMGui gui, String fileName) {
+		Properties prop = new Properties();
+		try (FileOutputStream os = new FileOutputStream(fileName)) {
+			prop.store(os, null);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+}
