@@ -1,0 +1,9 @@
+The source code can be esailly imported into the IDE Eclipse, by following Eclipses instructions here:
+http://help.eclipse.org/juno/topic/org.eclipse.platform.doc.user/tasks/tasks-importproject.htm
+When given the option between selecting a root directory, or an archive, choose a directory 
+then select the "Source Code" folder.
+
+From Eclipse the code can be run through Eclipse's run features, or else compiled into a JAVA jar
+via it's export. 
+
+
